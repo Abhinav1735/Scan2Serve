@@ -10,10 +10,9 @@ public class Menu {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false)
     private String name;
 
-    @Column(length = 500)
     private String description;
 
     @Column(nullable = false)
@@ -22,54 +21,68 @@ public class Menu {
     @Column(nullable = false)
     private Boolean available;
 
+    @ManyToOne
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
     public Menu() {
     }
 
-    public Menu(Long id, String name, String description, Double price, Boolean available) {
+    public Menu(Long id, String name, String description, Double price,
+                Boolean available, Category category) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
         this.available = available;
+        this.category = category;
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public Double getPrice() {
         return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
     }
 
     public Boolean getAvailable() {
         return available;
     }
 
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
     public void setAvailable(Boolean available) {
         this.available = available;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }

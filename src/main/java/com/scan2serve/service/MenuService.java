@@ -1,12 +1,14 @@
 package com.scan2serve.service;
 
+import com.scan2serve.dto.MenuRequest;
+import com.scan2serve.entity.Category;
 import com.scan2serve.entity.Menu;
+import com.scan2serve.repository.CategoryRepository;
 import com.scan2serve.repository.MenuRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class MenuService {
@@ -14,31 +16,51 @@ public class MenuService {
     @Autowired
     private MenuRepository menuRepository;
 
-    // Create Menu Item
-    public Menu saveMenu(Menu menu) {
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    // Create Menu
+    public Menu saveMenu(MenuRequest request) {
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+
+        Menu menu = new Menu();
+
+        menu.setName(request.getName());
+        menu.setDescription(request.getDescription());
+        menu.setPrice(request.getPrice());
+        menu.setAvailable(request.getAvailable());
+        menu.setCategory(category);
+
         return menuRepository.save(menu);
     }
 
-    // Get All Menu Items
+    // Get All Menu
     public List<Menu> getAllMenus() {
         return menuRepository.findAll();
     }
 
-    // Get Menu By ID
-    public Optional<Menu> getMenuById(Long id) {
-        return menuRepository.findById(id);
+    // Get Menu By Id
+    public Menu getMenuById(Long id) {
+        return menuRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Menu Not Found"));
     }
 
     // Update Menu
-    public Menu updateMenu(Long id, Menu updatedMenu) {
+    public Menu updateMenu(Long id, MenuRequest request) {
 
         Menu menu = menuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Menu not found"));
+                .orElseThrow(() -> new RuntimeException("Menu Not Found"));
 
-        menu.setName(updatedMenu.getName());
-        menu.setDescription(updatedMenu.getDescription());
-        menu.setPrice(updatedMenu.getPrice());
-        menu.setAvailable(updatedMenu.getAvailable());
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+
+        menu.setName(request.getName());
+        menu.setDescription(request.getDescription());
+        menu.setPrice(request.getPrice());
+        menu.setAvailable(request.getAvailable());
+        menu.setCategory(category);
 
         return menuRepository.save(menu);
     }
@@ -50,5 +72,4 @@ public class MenuService {
 
         return "Menu Deleted Successfully";
     }
-
 }
