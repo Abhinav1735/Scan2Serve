@@ -3,8 +3,8 @@ package com.scan2serve.service;
 import com.scan2serve.dto.CartRequest;
 import com.scan2serve.entity.Cart;
 import com.scan2serve.entity.Menu;
-import com.scan2serve.repository.CartRepository;
 import com.scan2serve.repository.MenuRepository;
+import com.scan2serve.repository.CartRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
