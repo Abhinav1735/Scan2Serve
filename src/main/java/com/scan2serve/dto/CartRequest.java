@@ -1,9 +1,18 @@
 package com.scan2serve.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
 public class CartRequest {
 
+    @NotNull(message = "Table Number is required")
     private Integer tableNumber;
+
+    @NotNull(message = "Menu Id is required")
     private Long menuId;
+
+    @NotNull(message = "Quantity is required")
+    @Min(value = 1, message = "Quantity must be greater than 0")
     private Integer quantity;
 
     public CartRequest() {

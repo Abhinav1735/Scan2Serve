@@ -1,9 +1,13 @@
 package com.scan2serve.controller;
 
-import com.scan2serve.dto.*;
+import com.scan2serve.dto.BillResponse;
+import com.scan2serve.dto.OrderRequest;
+import com.scan2serve.dto.OrderStatusRequest;
 import com.scan2serve.entity.Order;
 import com.scan2serve.enums.OrderStatus;
+import com.scan2serve.response.ApiResponse;
 import com.scan2serve.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,46 +19,97 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    // Customer
+    // ==========================
+    // Customer APIs
+    // ==========================
 
     @PostMapping("/customer/order")
-    public Order placeOrder(@RequestBody OrderRequest request) {
-        return orderService.placeOrder(request);
+    public ApiResponse<Order> placeOrder(
+            @Valid @RequestBody OrderRequest request) {
+
+        Order order = orderService.placeOrder(request);
+
+        return new ApiResponse<>(
+                true,
+                "Order Placed Successfully",
+                order
+        );
     }
 
     @GetMapping("/customer/bill/{orderId}")
-    public BillResponse getBill(@PathVariable Long orderId) {
-        return orderService.generateBill(orderId);
+    public ApiResponse<BillResponse> getBill(
+            @PathVariable Long orderId) {
+
+        BillResponse bill = orderService.generateBill(orderId);
+
+        return new ApiResponse<>(
+                true,
+                "Bill Generated Successfully",
+                bill
+        );
     }
 
-    // Admin
+    // ==========================
+    // Admin APIs
+    // ==========================
 
     @GetMapping("/admin/orders")
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
+    public ApiResponse<List<Order>> getAllOrders() {
+
+        return new ApiResponse<>(
+                true,
+                "Orders Fetched Successfully",
+                orderService.getAllOrders()
+        );
     }
 
     @GetMapping("/admin/orders/{id}")
-    public Order getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id);
+    public ApiResponse<Order> getOrderById(
+            @PathVariable Long id) {
+
+        return new ApiResponse<>(
+                true,
+                "Order Found",
+                orderService.getOrderById(id)
+        );
     }
 
     @PutMapping("/admin/orders/{id}/status")
-    public Order updateStatus(@PathVariable Long id,
-                              @RequestBody OrderStatusRequest request) {
+    public ApiResponse<Order> updateStatus(
+            @PathVariable Long id,
+            @RequestBody OrderStatusRequest request) {
 
-        return orderService.updateStatus(id, request.getStatus());
+        Order order = orderService.updateStatus(id, request.getStatus());
+
+        return new ApiResponse<>(
+                true,
+                "Order Status Updated Successfully",
+                order
+        );
     }
 
     @GetMapping("/admin/orders/status/{status}")
-    public List<Order> getOrdersByStatus(@PathVariable OrderStatus status) {
-        return orderService.getOrdersByStatus(status);
+    public ApiResponse<List<Order>> getOrdersByStatus(
+            @PathVariable OrderStatus status) {
+
+        return new ApiResponse<>(
+                true,
+                "Orders Fetched Successfully",
+                orderService.getOrdersByStatus(status)
+        );
     }
 
-    // Kitchen
+    // ==========================
+    // Kitchen APIs
+    // ==========================
 
     @GetMapping("/kitchen/orders")
-    public List<Order> getKitchenOrders() {
-        return orderService.getKitchenOrders();
+    public ApiResponse<List<Order>> getKitchenOrders() {
+
+        return new ApiResponse<>(
+                true,
+                "Kitchen Orders Fetched Successfully",
+                orderService.getKitchenOrders()
+        );
     }
 }

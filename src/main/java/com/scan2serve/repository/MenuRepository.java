@@ -9,7 +9,10 @@ import java.util.List;
 @Repository
 public interface MenuRepository extends JpaRepository<Menu, Long> {
 
-    // Return only available menu items
+    // Check duplicate menu name
+    boolean existsByName(String name);
+
+    // Get only available menu items (used by CustomerService)
     List<Menu> findByAvailableTrue();
 
 }

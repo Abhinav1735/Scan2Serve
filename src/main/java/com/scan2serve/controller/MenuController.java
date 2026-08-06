@@ -2,14 +2,16 @@ package com.scan2serve.controller;
 
 import com.scan2serve.dto.MenuRequest;
 import com.scan2serve.entity.Menu;
+import com.scan2serve.response.ApiResponse;
 import com.scan2serve.service.MenuService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/menu")
+@RequestMapping("/admin/menu")
 public class MenuController {
 
     @Autowired
@@ -17,33 +19,67 @@ public class MenuController {
 
     // Create Menu
     @PostMapping
-    public Menu saveMenu(@RequestBody MenuRequest request) {
-        return menuService.saveMenu(request);
+    public ApiResponse<Menu> createMenu(
+            @Valid @RequestBody MenuRequest request) {
+
+        Menu menu = menuService.saveMenu(request);
+
+        return new ApiResponse<>(
+                true,
+                "Menu Created Successfully",
+                menu
+        );
     }
 
-    // Get All Menu
+    // Get All Menus
     @GetMapping
-    public List<Menu> getAllMenus() {
-        return menuService.getAllMenus();
+    public ApiResponse<List<Menu>> getAllMenus() {
+
+        return new ApiResponse<>(
+                true,
+                "Menus Fetched Successfully",
+                menuService.getAllMenus()
+        );
     }
 
     // Get Menu By Id
     @GetMapping("/{id}")
-    public Menu getMenuById(@PathVariable Long id) {
-        return menuService.getMenuById(id);
+    public ApiResponse<Menu> getMenuById(
+            @PathVariable Long id) {
+
+        return new ApiResponse<>(
+                true,
+                "Menu Found",
+                menuService.getMenuById(id)
+        );
     }
 
     // Update Menu
     @PutMapping("/{id}")
-    public Menu updateMenu(@PathVariable Long id,
-                           @RequestBody MenuRequest request) {
+    public ApiResponse<Menu> updateMenu(
+            @PathVariable Long id,
+            @Valid @RequestBody MenuRequest request) {
 
-        return menuService.updateMenu(id, request);
+        Menu menu = menuService.updateMenu(id, request);
+
+        return new ApiResponse<>(
+                true,
+                "Menu Updated Successfully",
+                menu
+        );
     }
 
     // Delete Menu
     @DeleteMapping("/{id}")
-    public String deleteMenu(@PathVariable Long id) {
-        return menuService.deleteMenu(id);
+    public ApiResponse<String> deleteMenu(
+            @PathVariable Long id) {
+
+        String message = menuService.deleteMenu(id);
+
+        return new ApiResponse<>(
+                true,
+                message,
+                null
+        );
     }
 }

@@ -2,45 +2,100 @@ package com.scan2serve.controller;
 
 import com.scan2serve.dto.RestaurantTableRequest;
 import com.scan2serve.entity.RestaurantTable;
+import com.scan2serve.response.ApiResponse;
 import com.scan2serve.service.RestaurantTableService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tables")
+@RequestMapping("/admin/tables")
 public class RestaurantTableController {
 
     @Autowired
-    private RestaurantTableService service;
+    private RestaurantTableService restaurantTableService;
+
+    // ============================
+    // Create Table
+    // ============================
 
     @PostMapping
-    public RestaurantTable createTable(@RequestBody RestaurantTableRequest request){
-        return service.createTable(request);
+    public ApiResponse<RestaurantTable> createTable(
+            @Valid @RequestBody RestaurantTableRequest request) {
+
+        RestaurantTable table = restaurantTableService.createTable(request);
+
+        return new ApiResponse<>(
+                true,
+                "Table Created Successfully",
+                table
+        );
     }
+
+    // ============================
+    // Get All Tables
+    // ============================
 
     @GetMapping
-    public List<RestaurantTable> getAllTables(){
-        return service.getAllTables();
+    public ApiResponse<List<RestaurantTable>> getAllTables() {
+
+        return new ApiResponse<>(
+                true,
+                "Tables Fetched Successfully",
+                restaurantTableService.getAllTables()
+        );
     }
+
+    // ============================
+    // Get Table By Id
+    // ============================
 
     @GetMapping("/{id}")
-    public RestaurantTable getTableById(@PathVariable Long id){
-        return service.getTableById(id);
+    public ApiResponse<RestaurantTable> getTableById(
+            @PathVariable Long id) {
+
+        return new ApiResponse<>(
+                true,
+                "Table Found",
+                restaurantTableService.getTableById(id)
+        );
     }
+
+    // ============================
+    // Update Table
+    // ============================
 
     @PutMapping("/{id}")
-    public RestaurantTable updateTable(@PathVariable Long id,
-                                       @RequestBody RestaurantTableRequest request){
+    public ApiResponse<RestaurantTable> updateTable(
+            @PathVariable Long id,
+            @Valid @RequestBody RestaurantTableRequest request) {
 
-        return service.updateTable(id, request);
+        RestaurantTable table =
+                restaurantTableService.updateTable(id, request);
+
+        return new ApiResponse<>(
+                true,
+                "Table Updated Successfully",
+                table
+        );
     }
+
+    // ============================
+    // Delete Table
+    // ============================
 
     @DeleteMapping("/{id}")
-    public String deleteTable(@PathVariable Long id){
+    public ApiResponse<String> deleteTable(
+            @PathVariable Long id) {
 
-        return service.deleteTable(id);
+        String message = restaurantTableService.deleteTable(id);
+
+        return new ApiResponse<>(
+                true,
+                message,
+                null
+        );
     }
-
 }

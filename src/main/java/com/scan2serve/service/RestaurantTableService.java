@@ -12,49 +12,61 @@ import java.util.List;
 public class RestaurantTableService {
 
     @Autowired
-    private RestaurantTableRepository repository;
+    private RestaurantTableRepository restaurantTableRepository;
 
     // Create Table
-    public RestaurantTable createTable(RestaurantTableRequest request){
+    public RestaurantTable createTable(RestaurantTableRequest request) {
+
+        if (restaurantTableRepository.existsByTableNumber(request.getTableNumber())) {
+            throw new RuntimeException("Table Number already exists");
+        }
 
         RestaurantTable table = new RestaurantTable();
-
         table.setTableNumber(request.getTableNumber());
         table.setActive(request.getActive());
 
-        return repository.save(table);
+        return restaurantTableRepository.save(table);
     }
 
     // Get All Tables
-    public List<RestaurantTable> getAllTables(){
-        return repository.findAll();
+    public List<RestaurantTable> getAllTables() {
+        return restaurantTableRepository.findAll();
     }
 
     // Get Table By Id
-    public RestaurantTable getTableById(Long id){
+    public RestaurantTable getTableById(Long id) {
 
-        return repository.findById(id)
+        return restaurantTableRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Table Not Found"));
     }
 
     // Update Table
-    public RestaurantTable updateTable(Long id, RestaurantTableRequest request){
+    public RestaurantTable updateTable(Long id, RestaurantTableRequest request) {
 
-        RestaurantTable table = repository.findById(id)
+        RestaurantTable table = restaurantTableRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Table Not Found"));
+
+        // Only check for duplicates if the table number is being changed
+        if (!table.getTableNumber().equals(request.getTableNumber())
+                && restaurantTableRepository.existsByTableNumber(request.getTableNumber())) {
+
+            throw new RuntimeException("Table Number already exists");
+        }
 
         table.setTableNumber(request.getTableNumber());
         table.setActive(request.getActive());
 
-        return repository.save(table);
+        return restaurantTableRepository.save(table);
     }
 
     // Delete Table
-    public String deleteTable(Long id){
+    public String deleteTable(Long id) {
 
-        repository.deleteById(id);
+        RestaurantTable table = restaurantTableRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Table Not Found"));
+
+        restaurantTableRepository.delete(table);
 
         return "Table Deleted Successfully";
     }
-
 }

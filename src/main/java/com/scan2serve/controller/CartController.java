@@ -2,7 +2,9 @@ package com.scan2serve.controller;
 
 import com.scan2serve.dto.CartRequest;
 import com.scan2serve.entity.Cart;
+import com.scan2serve.response.ApiResponse;
 import com.scan2serve.service.CartService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,22 +17,71 @@ public class CartController {
     @Autowired
     private CartService cartService;
 
-    // Add Item
+    // ==========================
+    // Add Item To Cart
+    // ==========================
+
     @PostMapping
-    public Cart addToCart(@RequestBody CartRequest request) {
-        return cartService.addToCart(request);
+    public ApiResponse<Cart> addToCart(
+            @Valid @RequestBody CartRequest request) {
+
+        Cart cart = cartService.addToCart(request);
+
+        return new ApiResponse<>(
+                true,
+                "Item Added Successfully",
+                cart
+        );
     }
 
-    // View Cart of a Table
+    // ==========================
+    // Get Cart By Table Number
+    // ==========================
+
     @GetMapping("/{tableNumber}")
-    public List<Cart> getCart(@PathVariable Integer tableNumber) {
-        return cartService.getCart(tableNumber);
+    public ApiResponse<List<Cart>> getCart(
+            @PathVariable Integer tableNumber) {
+
+        List<Cart> cart = cartService.getCart(tableNumber);
+
+        return new ApiResponse<>(
+                true,
+                "Cart Fetched Successfully",
+                cart
+        );
     }
 
-    // Remove Item
+    // ==========================
+    // Remove Single Item
+    // ==========================
+
     @DeleteMapping("/{id}")
-    public String removeItem(@PathVariable Long id) {
-        return cartService.removeItem(id);
+    public ApiResponse<String> removeItem(
+            @PathVariable Long id) {
+
+        String message = cartService.removeItem(id);
+
+        return new ApiResponse<>(
+                true,
+                message,
+                null
+        );
     }
 
+    // ==========================
+    // Clear Complete Cart
+    // ==========================
+
+    @DeleteMapping("/table/{tableNumber}")
+    public ApiResponse<String> clearCart(
+            @PathVariable Integer tableNumber) {
+
+        String message = cartService.clearCart(tableNumber);
+
+        return new ApiResponse<>(
+                true,
+                message,
+                null
+        );
+    }
 }
