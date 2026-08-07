@@ -1,25 +1,26 @@
 package com.scan2serve.dto;
 
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class MenuRequest {
 
-    @NotBlank(message = "Menu Name is required")
+    @NotBlank(message = "Menu name is required")
     private String name;
 
     @NotBlank(message = "Description is required")
     private String description;
 
-    @NotNull(message = "Price is required")
-    @Min(value = 1, message = "Price must be greater than 0")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
     private Double price;
 
     @NotNull(message = "Availability is required")
     private Boolean available;
 
-    @NotNull(message = "Category Id is required")
+    @NotNull(message = "Category is required")
+    @Positive(message = "Invalid Category Id")
     private Long categoryId;
 
     public MenuRequest() {

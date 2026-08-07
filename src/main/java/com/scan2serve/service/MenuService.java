@@ -3,6 +3,11 @@ package com.scan2serve.service;
 import com.scan2serve.dto.MenuRequest;
 import com.scan2serve.entity.Category;
 import com.scan2serve.entity.Menu;
+import com.scan2serve.exception.custom.CategoryNotFoundException;
+import com.scan2serve.exception.custom.DuplicateMenuException;
+import com.scan2serve.exception.custom.MenuAlreadyDisabledException;
+import com.scan2serve.exception.custom.MenuAlreadyEnabledException;
+import com.scan2serve.exception.custom.MenuNotFoundException;
 import com.scan2serve.repository.CategoryRepository;
 import com.scan2serve.repository.MenuRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +30,12 @@ public class MenuService {
 
     public Menu saveMenu(MenuRequest request) {
 
-        // Check duplicate menu name
-        if (menuRepository.existsByName(request.getName())) {
-            throw new RuntimeException("Menu already exists");
+        if (menuRepository.findByNameIgnoreCase(request.getName()).isPresent()) {
+            throw new DuplicateMenuException();
         }
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+                .orElseThrow(CategoryNotFoundException::new);
 
         Menu menu = new Menu();
         menu.setName(request.getName());
@@ -58,7 +62,7 @@ public class MenuService {
     public Menu getMenuById(Long id) {
 
         return menuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Menu Not Found"));
+                .orElseThrow(MenuNotFoundException::new);
     }
 
     // ============================
@@ -68,16 +72,15 @@ public class MenuService {
     public Menu updateMenu(Long id, MenuRequest request) {
 
         Menu menu = menuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Menu Not Found"));
+                .orElseThrow(MenuNotFoundException::new);
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+                .orElseThrow(CategoryNotFoundException::new);
 
-        // Check duplicate only if name is changed
         if (!menu.getName().equalsIgnoreCase(request.getName())
-                && menuRepository.existsByName(request.getName())) {
+                && menuRepository.findByNameIgnoreCase(request.getName()).isPresent()) {
 
-            throw new RuntimeException("Menu already exists");
+            throw new DuplicateMenuException();
         }
 
         menu.setName(request.getName());
@@ -90,17 +93,42 @@ public class MenuService {
     }
 
     // ============================
-    // Delete Menu
+    // Soft Delete Menu
     // ============================
 
     public String deleteMenu(Long id) {
 
         Menu menu = menuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Menu Not Found"));
+                .orElseThrow(MenuNotFoundException::new);
 
-        menuRepository.delete(menu);
+        if (!menu.getAvailable()) {
+            throw new MenuAlreadyDisabledException();
+        }
 
-        return "Menu Deleted Successfully";
+        menu.setAvailable(false);
+
+        menuRepository.save(menu);
+
+        return "Menu Disabled Successfully";
     }
 
+    // ============================
+    // Enable Menu
+    // ============================
+
+    public String enableMenu(Long id) {
+
+        Menu menu = menuRepository.findById(id)
+                .orElseThrow(MenuNotFoundException::new);
+
+        if (menu.getAvailable()) {
+            throw new MenuAlreadyEnabledException();
+        }
+
+        menu.setAvailable(true);
+
+        menuRepository.save(menu);
+
+        return "Menu Enabled Successfully";
+    }
 }

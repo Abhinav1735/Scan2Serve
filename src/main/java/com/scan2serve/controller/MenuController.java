@@ -82,4 +82,20 @@ public class MenuController {
                 null
         );
     }
+
+    // ============================
+// Enable Menu
+// ============================
+
+    @PutMapping("/enable/{id}")
+    public ApiResponse<String> enableMenu(@PathVariable Long id) {
+
+        String message = menuService.enableMenu(id);
+
+        return new ApiResponse<>(
+                true,
+                message,
+                null
+        );
+    }
 }

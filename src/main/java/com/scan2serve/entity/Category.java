@@ -1,6 +1,8 @@
 package com.scan2serve.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "category")
@@ -10,16 +12,17 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @NotBlank(message = "Category name is required")
+    @Column(nullable = false, unique = true)
     private String name;
 
-    @Column(nullable = false)
-    private Integer displayOrder;
+    @Min(value = 0, message = "Display Order cannot be negative")
+    private int displayOrder;
 
     public Category() {
     }
 
-    public Category(Long id, String name, Integer displayOrder) {
+    public Category(Long id, String name, int displayOrder) {
         this.id = id;
         this.name = name;
         this.displayOrder = displayOrder;
@@ -29,32 +32,23 @@ public class Category {
         return id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Integer getDisplayOrder() {
-        return displayOrder;
-    }
-
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setDisplayOrder(Integer displayOrder) {
-        this.displayOrder = displayOrder;
+    public int getDisplayOrder() {
+        return displayOrder;
     }
 
-    @Override
-    public String toString() {
-        return "Category{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", displayOrder=" + displayOrder +
-                '}';
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

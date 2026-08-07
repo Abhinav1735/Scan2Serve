@@ -5,14 +5,21 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MenuRepository extends JpaRepository<Menu, Long> {
 
-    // Check duplicate menu name
-    boolean existsByName(String name);
-
-    // Get only available menu items (used by CustomerService)
+    // For Customer
     List<Menu> findByAvailableTrue();
+
+    // For Admin
+    List<Menu> findAll();
+
+    // Check Duplicate Menu
+    Optional<Menu> findByNameIgnoreCase(String name);
+
+    // Find only available menu by ID
+    Optional<Menu> findByIdAndAvailableTrue(Long id);
 
 }
