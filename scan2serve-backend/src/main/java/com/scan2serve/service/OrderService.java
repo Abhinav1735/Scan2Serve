@@ -29,71 +29,170 @@ public class OrderService {
     @Autowired
     private CartRepository cartRepository;
 
-    // ============================
+    // =========================================================
     // Customer - Place Order
-    // ============================
+    // =========================================================
 
     public Order placeOrder(OrderRequest request) {
 
-        List<Cart> cartItems = cartRepository.findByTableNumber(request.getTableNumber());
+        Integer tableNumber = request.getTableNumber();
+
+        // -----------------------------------------------------
+        // 1. Get cart items for this table
+        // -----------------------------------------------------
+
+        List<Cart> cartItems = cartRepository.findByTableNumber(tableNumber);
 
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Cart is Empty");
         }
 
-        Order order = new Order();
+        // -----------------------------------------------------
+        // 2. Check if this table already has an active order
+        // -----------------------------------------------------
 
-        order.setTableNumber(request.getTableNumber());
-        order.setStatus(OrderStatus.PENDING);
-        order.setOrderTime(LocalDateTime.now());
+        Order order = orderRepository
+                .findFirstByTableNumberAndStatusNotOrderByIdDesc(
+                        tableNumber,
+                        OrderStatus.PAID)
+                .orElse(null);
 
-        double total = 0;
+        // -----------------------------------------------------
+        // 3. If no active order exists, create a new order
+        // -----------------------------------------------------
 
-        order = orderRepository.save(order);
+        if (order == null || order.getStatus() == OrderStatus.CANCELLED) {
+
+            order = new Order();
+
+            order.setTableNumber(tableNumber);
+            order.setStatus(OrderStatus.PENDING);
+            order.setOrderTime(LocalDateTime.now());
+            order.setTotalAmount(0.0);
+
+            order = orderRepository.save(order);
+        }
+
+        // -----------------------------------------------------
+        // 4. Add cart items to the SAME order
+        // -----------------------------------------------------
+
+        double newItemsTotal = 0.0;
+
+        List<OrderItem> existingItems = orderItemRepository.findByOrder(order);
 
         for (Cart cart : cartItems) {
 
-            OrderItem item = new OrderItem();
-
-            item.setOrder(order);
-            item.setMenu(cart.getMenu());
-            item.setQuantity(cart.getQuantity());
-
             double price = cart.getMenu().getPrice() * cart.getQuantity();
 
-            item.setPrice(price);
+            newItemsTotal += price;
 
-            total += price;
+            // -------------------------------------------------
+            // Check whether this menu item already exists
+            // in this order
+            // -------------------------------------------------
 
-            orderItemRepository.save(item);
+            OrderItem existingItem = null;
+
+            for (OrderItem item : existingItems) {
+
+                if (item.getMenu().getId()
+                        .equals(cart.getMenu().getId())) {
+
+                    existingItem = item;
+                    break;
+                }
+            }
+
+            // -------------------------------------------------
+            // If item already exists:
+            // increase quantity and total price
+            // -------------------------------------------------
+
+            if (existingItem != null) {
+
+                existingItem.setQuantity(
+                        existingItem.getQuantity()
+                                + cart.getQuantity());
+
+                existingItem.setPrice(
+                        existingItem.getPrice()
+                                + price);
+
+                orderItemRepository.save(existingItem);
+
+            }
+
+            // -------------------------------------------------
+            // Otherwise create a new OrderItem
+            // -------------------------------------------------
+
+            else {
+
+                OrderItem item = new OrderItem();
+
+                item.setOrder(order);
+                item.setMenu(cart.getMenu());
+                item.setQuantity(cart.getQuantity());
+                item.setPrice(price);
+
+                orderItemRepository.save(item);
+
+                // Add it to the local list so that if the same
+                // item appears again in this cart, we can detect it.
+                existingItems.add(item);
+            }
         }
 
-        order.setTotalAmount(total);
+        // -----------------------------------------------------
+        // 5. Add new amount to existing order total
+        // -----------------------------------------------------
+
+        double oldTotal = order.getTotalAmount() == null
+                ? 0.0
+                : order.getTotalAmount();
+
+        double finalTotal = oldTotal + newItemsTotal;
+
+        order.setTotalAmount(finalTotal);
 
         orderRepository.save(order);
 
-        cartRepository.deleteByTableNumber(request.getTableNumber());
+        // -----------------------------------------------------
+        // 6. Clear only the cart
+        // -----------------------------------------------------
+
+        cartRepository.deleteByTableNumber(tableNumber);
+
+        // -----------------------------------------------------
+        // 7. Return SAME order
+        // -----------------------------------------------------
 
         return order;
     }
 
-    // ============================
+    // =========================================================
     // Admin
-    // ============================
+    // =========================================================
 
     public List<Order> getAllOrders() {
+
         return orderRepository.findAll();
     }
 
     public Order getOrderById(Long id) {
+
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order Not Found"));
+                .orElseThrow(
+                        () -> new RuntimeException("Order Not Found"));
     }
 
     public Order updateStatus(Long id, OrderStatus status) {
 
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order Not Found"));
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Order Not Found"));
 
         order.setStatus(status);
 
@@ -101,21 +200,25 @@ public class OrderService {
     }
 
     public List<Order> getOrdersByStatus(OrderStatus status) {
+
         return orderRepository.findByStatus(status);
     }
 
     public List<Order> getKitchenOrders() {
+
         return orderRepository.findByStatus(OrderStatus.PENDING);
     }
 
-    // ============================
+    // =========================================================
     // Bill Generation
-    // ============================
+    // =========================================================
 
     public BillResponse generateBill(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order Not Found"));
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Order Not Found"));
 
         List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
 
@@ -132,15 +235,22 @@ public class OrderService {
                             item.getMenu().getName(),
                             item.getQuantity(),
                             unitPrice,
-                            item.getPrice()
-                    )
-            );
+                            item.getPrice()));
 
             subtotal += item.getPrice();
         }
 
+        // -----------------------------------------------------
+        // GST
+        // -----------------------------------------------------
+
         double gst = subtotal * 0.05;
+
         double grandTotal = subtotal + gst;
+
+        // -----------------------------------------------------
+        // Create Bill Response
+        // -----------------------------------------------------
 
         BillResponse bill = new BillResponse();
 

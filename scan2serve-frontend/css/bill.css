@@ -1,0 +1,268 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+
+  background: #f4f6f8;
+
+  padding: 30px;
+}
+
+/* =========================
+   BILL CONTAINER
+========================= */
+
+.bill-container {
+  max-width: 700px;
+
+  margin: auto;
+
+  background: white;
+
+  padding: 30px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  text-align: center;
+
+  margin-bottom: 25px;
+}
+
+.header h1 {
+  color: #222;
+
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #666;
+}
+
+/* =========================
+   ORDER INFORMATION
+========================= */
+
+.order-info {
+  display: flex;
+
+  justify-content: space-between;
+
+  margin-bottom: 25px;
+
+  padding: 15px;
+
+  background: #f8f8f8;
+
+  border-radius: 8px;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-bottom: 25px;
+}
+
+th,
+td {
+  padding: 12px;
+
+  border-bottom: 1px solid #ddd;
+
+  text-align: left;
+}
+
+th {
+  background: #222;
+
+  color: white;
+}
+
+th:last-child,
+td:last-child {
+  text-align: right;
+}
+
+/* =========================
+   TOTALS
+========================= */
+
+.totals {
+  width: 100%;
+
+  max-width: 350px;
+
+  margin-left: auto;
+}
+
+.total-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 8px 0;
+}
+
+.grand-total {
+  font-size: 20px;
+
+  font-weight: bold;
+
+  border-top: 2px solid #222;
+
+  margin-top: 8px;
+
+  padding-top: 12px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.buttons {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 15px;
+
+  margin-top: 30px;
+}
+
+button {
+  padding: 12px 20px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  font-size: 15px;
+}
+
+.print-btn {
+  background: #222;
+
+  color: white;
+}
+
+.menu-btn {
+  background: #ddd;
+
+  color: #222;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.loading {
+  text-align: center;
+
+  padding: 30px;
+}
+
+/* =========================
+   BILL CONTENT
+========================= */
+
+.bill-content {
+  display: none;
+}
+
+/* =========================
+   ERROR
+========================= */
+
+.error {
+  display: none;
+
+  text-align: center;
+
+  color: red;
+
+  padding: 30px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+  body {
+    padding: 15px;
+  }
+
+  .bill-container {
+    padding: 20px;
+  }
+
+  .order-info {
+    flex-direction: column;
+
+    gap: 10px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    padding: 8px;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
+/* =========================
+   PRINT
+========================= */
+
+@media print {
+  body {
+    background: white;
+
+    padding: 0;
+  }
+
+  .bill-container {
+    box-shadow: none;
+
+    width: 100%;
+
+    max-width: 100%;
+  }
+
+  .buttons {
+    display: none;
+  }
+}

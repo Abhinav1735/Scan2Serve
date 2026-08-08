@@ -16,9 +16,7 @@ if (!tableNumber) {
   document.getElementById("tableInfo").textContent = "Table number not found";
 
   document.getElementById("cartContainer").innerHTML = `
-        <p>
-            Invalid table number.
-        </p>
+        <p>Invalid table number.</p>
     `;
 } else {
   document.getElementById("tableInfo").textContent = "Table " + tableNumber;
@@ -125,7 +123,7 @@ function displayCart(cartItems) {
             </p>
 
             <p>
-                Price: ₹${price}
+                Price: ₹${price.toFixed(2)}
             </p>
 
 
@@ -163,7 +161,7 @@ function displayCart(cartItems) {
 
 
             <p class="price">
-                Item Total: ₹${itemTotal}
+                Item Total: ₹${itemTotal.toFixed(2)}
             </p>
 
 
@@ -188,7 +186,7 @@ function displayCart(cartItems) {
 
   totalElement.className = "cart-total";
 
-  totalElement.textContent = "Grand Total: ₹" + grandTotal;
+  totalElement.textContent = "Grand Total: ₹" + grandTotal.toFixed(2);
 
   container.appendChild(totalElement);
 
@@ -207,7 +205,7 @@ function displayCart(cartItems) {
   container.appendChild(menuLink);
 
   // ============================
-  // Place Order Button
+  // Place Order
   // ============================
 
   const orderButton = document.createElement("button");
@@ -255,7 +253,6 @@ async function updateQuantity(cartId, quantity) {
   try {
     const response = await fetch(
       BACKEND_URL + "/customer/cart/" + cartId + "?quantity=" + quantity,
-
       {
         method: "PUT",
       },
@@ -266,8 +263,6 @@ async function updateQuantity(cartId, quantity) {
     if (!response.ok || !result.success) {
       throw new Error(result.message || "Unable to update quantity");
     }
-
-    // Refresh cart
 
     loadCart();
   } catch (error) {
@@ -283,23 +278,15 @@ async function updateQuantity(cartId, quantity) {
 
 async function removeFromCart(cartId) {
   try {
-    const response = await fetch(
-      BACKEND_URL + "/customer/cart/" + cartId,
-
-      {
-        method: "DELETE",
-      },
-    );
+    const response = await fetch(BACKEND_URL + "/customer/cart/" + cartId, {
+      method: "DELETE",
+    });
 
     const result = await response.json();
 
     if (!response.ok || !result.success) {
       throw new Error(result.message || "Unable to remove item");
     }
-
-    alert("Item removed from cart successfully");
-
-    // Refresh cart
 
     loadCart();
   } catch (error) {
@@ -321,21 +308,17 @@ async function placeOrder() {
   }
 
   try {
-    const response = await fetch(
-      BACKEND_URL + "/customer/order",
+    const response = await fetch(BACKEND_URL + "/customer/order", {
+      method: "POST",
 
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          tableNumber: Number(tableNumber),
-        }),
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+
+      body: JSON.stringify({
+        tableNumber: Number(tableNumber),
+      }),
+    });
 
     const result = await response.json();
 
@@ -346,11 +329,13 @@ async function placeOrder() {
     console.log("Order Response:", result);
 
     // ============================
-    // Redirect To Success Page
+    // SAME TABLE + ORDER SESSION
     // ============================
 
+    const orderId = result.data.id;
+
     window.location.href =
-      "order-success.html?orderId=" + result.data.id + "&table=" + tableNumber;
+      "order-success.html" + "?orderId=" + orderId + "&table=" + tableNumber;
   } catch (error) {
     console.error("Place order error:", error);
 

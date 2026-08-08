@@ -28,7 +28,16 @@ if (orderId) {
 const billButton = document.getElementById("billButton");
 
 if (orderId) {
-  billButton.href = "bill.html?orderId=" + orderId;
+  // Keep both order ID and table number
+  // when opening the bill.
+
+  if (tableNumber) {
+    billButton.href = "bill.html?orderId=" + orderId + "&table=" + tableNumber;
+  } else {
+    // Fallback if table number is missing
+
+    billButton.href = "bill.html?orderId=" + orderId;
+  }
 } else {
   billButton.style.display = "none";
 }
