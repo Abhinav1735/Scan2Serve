@@ -34,6 +34,7 @@ public class CartController {
         );
     }
 
+
     // ==========================
     // Get Cart By Table Number
     // ==========================
@@ -51,6 +52,26 @@ public class CartController {
         );
     }
 
+
+    // ==========================
+    // Update Cart Item Quantity
+    // ==========================
+
+    @PutMapping("/{id}")
+    public ApiResponse<Cart> updateQuantity(
+            @PathVariable Long id,
+            @RequestParam Integer quantity) {
+
+        Cart cart = cartService.updateQuantity(id, quantity);
+
+        return new ApiResponse<>(
+                true,
+                "Cart Quantity Updated Successfully",
+                cart
+        );
+    }
+
+
     // ==========================
     // Remove Single Item
     // ==========================
@@ -67,6 +88,7 @@ public class CartController {
                 null
         );
     }
+
 
     // ==========================
     // Clear Complete Cart
