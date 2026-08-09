@@ -1,13 +1,20 @@
 package com.scan2serve.service;
 
-import com.scan2serve.dto.*;
+import com.scan2serve.dto.BillItemResponse;
+import com.scan2serve.dto.BillResponse;
+import com.scan2serve.dto.OrderRequest;
+
 import com.scan2serve.entity.Cart;
 import com.scan2serve.entity.Order;
 import com.scan2serve.entity.OrderItem;
+
+import com.scan2serve.enums.OrderItemStatus;
 import com.scan2serve.enums.OrderStatus;
+
 import com.scan2serve.repository.CartRepository;
 import com.scan2serve.repository.OrderItemRepository;
 import com.scan2serve.repository.OrderRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,159 +27,301 @@ import java.util.List;
 @Transactional
 public class OrderService {
 
+
     @Autowired
     private OrderRepository orderRepository;
+
 
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+
     @Autowired
     private CartRepository cartRepository;
 
+
     // =========================================================
-    // Customer - Place Order
+    // CUSTOMER - PLACE ORDER
     // =========================================================
 
-    public Order placeOrder(OrderRequest request) {
+    public Order placeOrder(
+            OrderRequest request
+    ) {
 
-        Integer tableNumber = request.getTableNumber();
 
-        // -----------------------------------------------------
-        // 1. Get cart items for this table
-        // -----------------------------------------------------
+        Integer tableNumber =
+                request.getTableNumber();
 
-        List<Cart> cartItems = cartRepository.findByTableNumber(tableNumber);
 
-        if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is Empty");
+        // =====================================================
+        // GET CART
+        // =====================================================
+
+        List<Cart> cartItems =
+                cartRepository.findByTableNumber(
+                        tableNumber
+                );
+
+
+        // =====================================================
+        // CHECK CART
+        // =====================================================
+
+        if (
+                cartItems.isEmpty()
+        ) {
+
+            throw new RuntimeException(
+                    "Cart is Empty"
+            );
         }
 
-        // -----------------------------------------------------
-        // 2. Check if this table already has an active order
-        // -----------------------------------------------------
 
-        Order order = orderRepository
-                .findFirstByTableNumberAndStatusNotOrderByIdDesc(
-                        tableNumber,
-                        OrderStatus.PAID)
-                .orElse(null);
+        // =====================================================
+        // FIND EXISTING ACTIVE ORDER
+        // =====================================================
 
-        // -----------------------------------------------------
-        // 3. If no active order exists, create a new order
-        // -----------------------------------------------------
+        List<OrderStatus> closedStatuses =
+                List.of(
+                        OrderStatus.PAID,
+                        OrderStatus.CANCELLED
+                );
 
-        if (order == null || order.getStatus() == OrderStatus.CANCELLED) {
 
-            order = new Order();
+        Order order =
+                orderRepository
+                        .findFirstByTableNumberAndStatusNotInOrderByIdDesc(
+                                tableNumber,
+                                closedStatuses
+                        )
+                        .orElse(null);
 
-            order.setTableNumber(tableNumber);
-            order.setStatus(OrderStatus.PENDING);
-            order.setOrderTime(LocalDateTime.now());
-            order.setTotalAmount(0.0);
 
-            order = orderRepository.save(order);
+        // =====================================================
+        // CREATE NEW ORDER IF NO ACTIVE ORDER EXISTS
+        // =====================================================
+
+        if (
+                order == null
+        ) {
+
+            order =
+                    new Order();
+
+
+            order.setTableNumber(
+                    tableNumber
+            );
+
+
+            order.setStatus(
+                    OrderStatus.PENDING
+            );
+
+
+            order.setOrderTime(
+                    LocalDateTime.now()
+            );
+
+
+            order.setTotalAmount(
+                    0.0
+            );
+
+
+            order =
+                    orderRepository.save(
+                            order
+                    );
         }
 
-        // -----------------------------------------------------
-        // 4. Add cart items to the SAME order
-        // -----------------------------------------------------
 
-        double newItemsTotal = 0.0;
+        // =====================================================
+        // ADD CART ITEMS TO SAME ORDER
+        // =====================================================
 
-        List<OrderItem> existingItems = orderItemRepository.findByOrder(order);
+        for (
+                Cart cart :
+                cartItems
+        ) {
 
-        for (Cart cart : cartItems) {
 
-            double price = cart.getMenu().getPrice() * cart.getQuantity();
+            OrderItem item =
+                    new OrderItem();
 
-            newItemsTotal += price;
 
-            // -------------------------------------------------
-            // Check whether this menu item already exists
-            // in this order
-            // -------------------------------------------------
+            // =================================================
+            // ORDER
+            // =================================================
 
-            OrderItem existingItem = null;
+            item.setOrder(
+                    order
+            );
 
-            for (OrderItem item : existingItems) {
 
-                if (item.getMenu().getId()
-                        .equals(cart.getMenu().getId())) {
+            // =================================================
+            // MENU
+            // =================================================
 
-                    existingItem = item;
-                    break;
-                }
-            }
+            item.setMenu(
+                    cart.getMenu()
+            );
 
-            // -------------------------------------------------
-            // If item already exists:
-            // increase quantity and total price
-            // -------------------------------------------------
 
-            if (existingItem != null) {
+            // =================================================
+            // QUANTITY
+            // =================================================
 
-                existingItem.setQuantity(
-                        existingItem.getQuantity()
-                                + cart.getQuantity());
+            item.setQuantity(
+                    cart.getQuantity()
+            );
 
-                existingItem.setPrice(
-                        existingItem.getPrice()
-                                + price);
 
-                orderItemRepository.save(existingItem);
+            // =================================================
+            // NEW ITEM STATUS
+            // =================================================
 
-            }
+            item.setStatus(
+                    OrderItemStatus.ORDER_PLACED
+            );
 
-            // -------------------------------------------------
-            // Otherwise create a new OrderItem
-            // -------------------------------------------------
 
-            else {
+            // =================================================
+            // PRICE
+            // =================================================
 
-                OrderItem item = new OrderItem();
+            double price =
+                    cart.getMenu().getPrice()
+                            * cart.getQuantity();
 
-                item.setOrder(order);
-                item.setMenu(cart.getMenu());
-                item.setQuantity(cart.getQuantity());
-                item.setPrice(price);
 
-                orderItemRepository.save(item);
+            item.setPrice(
+                    price
+            );
 
-                // Add it to the local list so that if the same
-                // item appears again in this cart, we can detect it.
-                existingItems.add(item);
+
+            // =================================================
+            // SAVE ITEM
+            // =================================================
+
+            orderItemRepository.save(
+                    item
+            );
+        }
+
+
+        // =====================================================
+        // RECALCULATE COMPLETE BILL TOTAL
+        // =====================================================
+
+        List<OrderItem> allItems =
+                orderItemRepository.findByOrder(
+                        order
+                );
+
+
+        double total =
+                0.0;
+
+
+        for (
+                OrderItem item :
+                allItems
+        ) {
+
+            if (
+                    item.getPrice() != null
+            ) {
+
+                total +=
+                        item.getPrice();
             }
         }
 
-        // -----------------------------------------------------
-        // 5. Add new amount to existing order total
-        // -----------------------------------------------------
 
-        double oldTotal = order.getTotalAmount() == null
-                ? 0.0
-                : order.getTotalAmount();
+        // =====================================================
+        // UPDATE ORDER TOTAL
+        // =====================================================
 
-        double finalTotal = oldTotal + newItemsTotal;
+        order.setTotalAmount(
+                total
+        );
 
-        order.setTotalAmount(finalTotal);
 
-        orderRepository.save(order);
+        order =
+                orderRepository.save(
+                        order
+                );
 
-        // -----------------------------------------------------
-        // 6. Clear only the cart
-        // -----------------------------------------------------
 
-        cartRepository.deleteByTableNumber(tableNumber);
+        // =====================================================
+        // CLEAR CART
+        // =====================================================
 
-        // -----------------------------------------------------
-        // 7. Return SAME order
-        // -----------------------------------------------------
+        cartRepository.deleteByTableNumber(
+                tableNumber
+        );
+
 
         return order;
     }
 
+
     // =========================================================
-    // Admin
+    // CUSTOMER - GET CURRENT ACTIVE ORDER
+    // =========================================================
+
+    public Order getCurrentOrder(
+            Integer tableNumber
+    ) {
+
+
+        List<OrderStatus> closedStatuses =
+                List.of(
+                        OrderStatus.PAID,
+                        OrderStatus.CANCELLED
+                );
+
+
+        return orderRepository
+                .findFirstByTableNumberAndStatusNotInOrderByIdDesc(
+                        tableNumber,
+                        closedStatuses
+                )
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "No Active Order Found for this Table"
+                        )
+                );
+    }
+
+
+    // =========================================================
+    // CUSTOMER - GET ORDER STATUS
+    // =========================================================
+
+    public OrderStatus getOrderStatus(
+            Long orderId
+    ) {
+
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+
+        return order.getStatus();
+    }
+
+
+    // =========================================================
+    // ADMIN - GET ALL ORDERS
     // =========================================================
 
     public List<Order> getAllOrders() {
@@ -180,87 +329,511 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    public Order getOrderById(Long id) {
 
-        return orderRepository.findById(id)
-                .orElseThrow(
-                        () -> new RuntimeException("Order Not Found"));
-    }
+    // =========================================================
+    // ADMIN - GET ORDER BY ID
+    // =========================================================
 
-    public Order updateStatus(Long id, OrderStatus status) {
+    public Order getOrderById(
+            Long id
+    ) {
 
-        Order order = orderRepository.findById(id)
+
+        return orderRepository.findById(
+                        id
+                )
                 .orElseThrow(
                         () -> new RuntimeException(
-                                "Order Not Found"));
-
-        order.setStatus(status);
-
-        return orderRepository.save(order);
+                                "Order Not Found"
+                        )
+                );
     }
 
-    public List<Order> getOrdersByStatus(OrderStatus status) {
 
-        return orderRepository.findByStatus(status);
+    // =========================================================
+    // ADMIN - UPDATE ORDER STATUS
+    // =========================================================
+
+    public Order updateStatus(
+            Long id,
+            OrderStatus status
+    ) {
+
+
+        Order order =
+                orderRepository.findById(
+                                id
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+
+        order.setStatus(
+                status
+        );
+
+
+        return orderRepository.save(
+                order
+        );
     }
+
+
+    // =========================================================
+    // ADMIN - GET ORDERS BY STATUS
+    // =========================================================
+
+    public List<Order> getOrdersByStatus(
+            OrderStatus status
+    ) {
+
+        return orderRepository.findByStatus(
+                status
+        );
+    }
+
+
+    // =========================================================
+    // KITCHEN - GET PENDING ORDERS
+    // =========================================================
 
     public List<Order> getKitchenOrders() {
 
-        return orderRepository.findByStatus(OrderStatus.PENDING);
+        return orderRepository.findByStatus(
+                OrderStatus.PENDING
+        );
     }
 
+
     // =========================================================
-    // Bill Generation
+    // KITCHEN - UPDATE INDIVIDUAL ITEM STATUS
     // =========================================================
+    //
+    // This is the ONLY updateItemStatus() method.
+    //
+    // ORDER_PLACED -> PREPARING -> READY -> SERVED
+    //
+    // If an item becomes SERVED, same-food SERVED batches
+    // in the same order are merged.
+    //
 
-    public BillResponse generateBill(Long orderId) {
+    public OrderItem updateItemStatus(
+            Long itemId,
+            OrderItemStatus newStatus
+    ) {
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Order Not Found"));
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+        // =====================================================
+        // FIND CURRENT ITEM
+        // =====================================================
 
-        List<BillItemResponse> items = new ArrayList<>();
+        OrderItem currentItem =
+                orderItemRepository.findById(
+                                itemId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Item Not Found"
+                                )
+                        );
 
-        double subtotal = 0;
 
-        for (OrderItem item : orderItems) {
+        // =====================================================
+        // UPDATE STATUS
+        // =====================================================
 
-            double unitPrice = item.getPrice() / item.getQuantity();
+        currentItem.setStatus(
+                newStatus
+        );
 
-            items.add(
-                    new BillItemResponse(
-                            item.getMenu().getName(),
-                            item.getQuantity(),
-                            unitPrice,
-                            item.getPrice()));
 
-            subtotal += item.getPrice();
+        // =====================================================
+        // IF NOT SERVED
+        // =====================================================
+        //
+        // Keep the batch separate while it is being prepared.
+        //
+
+        if (
+                newStatus != OrderItemStatus.SERVED
+        ) {
+
+            return orderItemRepository.save(
+                    currentItem
+            );
         }
 
-        // -----------------------------------------------------
+
+        // =====================================================
+        // SAVE CURRENT ITEM AS SERVED
+        // =====================================================
+
+        currentItem =
+                orderItemRepository.save(
+                        currentItem
+                );
+
+
+        // =====================================================
+        // FIND ALL SAME FOOD IN SAME ORDER
+        // =====================================================
+
+        List<OrderItem> sameItems =
+                orderItemRepository
+                        .findByOrderAndMenuId(
+                                currentItem.getOrder(),
+                                currentItem.getMenu().getId()
+                        );
+
+
+        // =====================================================
+        // FIND SERVED ITEMS
+        // =====================================================
+
+        List<OrderItem> servedItems =
+                new ArrayList<>();
+
+
+        for (
+                OrderItem item :
+                sameItems
+        ) {
+
+            if (
+                    item.getStatus()
+                            == OrderItemStatus.SERVED
+            ) {
+
+                servedItems.add(
+                        item
+                );
+            }
+        }
+
+
+        // =====================================================
+        // NOTHING TO MERGE
+        // =====================================================
+
+        if (
+                servedItems.size() <= 1
+        ) {
+
+            return currentItem;
+        }
+
+
+        // =====================================================
+        // SELECT MERGE TARGET
+        // =====================================================
+        //
+        // Keep the oldest served row.
+        //
+
+        OrderItem mergeTarget =
+                servedItems.get(0);
+
+
+        for (
+                OrderItem item :
+                servedItems
+        ) {
+
+            if (
+                    item.getId()
+                            < mergeTarget.getId()
+            ) {
+
+                mergeTarget =
+                        item;
+            }
+        }
+
+
+        // =====================================================
+        // MERGE QUANTITY AND PRICE
+        // =====================================================
+
+        int mergedQuantity =
+                0;
+
+
+        double mergedPrice =
+                0.0;
+
+
+        for (
+                OrderItem item :
+                servedItems
+        ) {
+
+            mergedQuantity +=
+                    item.getQuantity();
+
+
+            if (
+                    item.getPrice() != null
+            ) {
+
+                mergedPrice +=
+                        item.getPrice();
+            }
+        }
+
+
+        mergeTarget.setQuantity(
+                mergedQuantity
+        );
+
+
+        mergeTarget.setPrice(
+                mergedPrice
+        );
+
+
+        mergeTarget.setStatus(
+                OrderItemStatus.SERVED
+        );
+
+
+        // =====================================================
+        // SAVE MERGE TARGET
+        // =====================================================
+
+        mergeTarget =
+                orderItemRepository.save(
+                        mergeTarget
+                );
+
+
+        // =====================================================
+        // DELETE OTHER SERVED DUPLICATE BATCHES
+        // =====================================================
+
+        for (
+                OrderItem item :
+                servedItems
+        ) {
+
+            if (
+                    !item.getId()
+                            .equals(
+                                    mergeTarget.getId()
+                            )
+            ) {
+
+                orderItemRepository.delete(
+                        item
+                );
+            }
+        }
+
+
+        // =====================================================
+        // RETURN MERGED ITEM
+        // =====================================================
+
+        return mergeTarget;
+    }
+
+
+    // =========================================================
+    // BILL GENERATION
+    // =========================================================
+
+    public BillResponse generateBill(
+            Long orderId
+    ) {
+
+
+        // =====================================================
+        // FIND ORDER
+        // =====================================================
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+
+        // =====================================================
+        // FIND ORDER ITEMS
+        // =====================================================
+
+        List<OrderItem> orderItems =
+                orderItemRepository.findByOrder(
+                        order
+                );
+
+
+        List<BillItemResponse> items =
+                new ArrayList<>();
+
+
+        double subtotal =
+                0.0;
+
+
+        // =====================================================
+        // CREATE BILL ITEMS
+        // =====================================================
+
+        for (
+                OrderItem item :
+                orderItems
+        ) {
+
+
+            // =================================================
+            // SAFETY CHECK
+            // =================================================
+
+            if (
+                    item.getQuantity() == null
+                            ||
+                            item.getQuantity() <= 0
+            ) {
+
+                continue;
+            }
+
+
+            if (
+                    item.getPrice() == null
+            ) {
+
+                continue;
+            }
+
+
+            // =================================================
+            // UNIT PRICE
+            // =================================================
+
+            double unitPrice =
+                    item.getPrice()
+                            / item.getQuantity();
+
+
+            // =================================================
+            // ITEM STATUS
+            // =================================================
+
+            String itemStatus;
+
+
+            if (
+                    item.getStatus() == null
+            ) {
+
+                itemStatus =
+                        OrderItemStatus
+                                .ORDER_PLACED
+                                .name();
+
+            } else {
+
+                itemStatus =
+                        item.getStatus()
+                                .name();
+            }
+
+
+            // =================================================
+            // ADD BILL ITEM
+            // =================================================
+
+            items.add(
+
+                    new BillItemResponse(
+
+                            item.getMenu()
+                                    .getName(),
+
+                            item.getQuantity(),
+
+                            unitPrice,
+
+                            item.getPrice(),
+
+                            itemStatus
+
+                    )
+            );
+
+
+            // =================================================
+            // SUBTOTAL
+            // =================================================
+
+            subtotal +=
+                    item.getPrice();
+        }
+
+
+        // =====================================================
         // GST
-        // -----------------------------------------------------
+        // =====================================================
 
-        double gst = subtotal * 0.05;
+        double gst =
+                subtotal * 0.05;
 
-        double grandTotal = subtotal + gst;
 
-        // -----------------------------------------------------
-        // Create Bill Response
-        // -----------------------------------------------------
+        // =====================================================
+        // GRAND TOTAL
+        // =====================================================
 
-        BillResponse bill = new BillResponse();
+        double grandTotal =
+                subtotal + gst;
 
-        bill.setOrderId(order.getId());
-        bill.setTableNumber(order.getTableNumber());
-        bill.setItems(items);
-        bill.setSubtotal(subtotal);
-        bill.setGst(gst);
-        bill.setGrandTotal(grandTotal);
+
+        // =====================================================
+        // BILL RESPONSE
+        // =====================================================
+
+        BillResponse bill =
+                new BillResponse();
+
+
+        bill.setOrderId(
+                order.getId()
+        );
+
+
+        bill.setTableNumber(
+                order.getTableNumber()
+        );
+
+
+        bill.setItems(
+                items
+        );
+
+
+        bill.setSubtotal(
+                subtotal
+        );
+
+
+        bill.setGst(
+                gst
+        );
+
+
+        bill.setGrandTotal(
+                grandTotal
+        );
+
 
         return bill;
     }
+
 }

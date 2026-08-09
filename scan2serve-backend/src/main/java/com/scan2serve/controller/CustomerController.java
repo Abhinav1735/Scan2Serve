@@ -1,7 +1,11 @@
 package com.scan2serve.controller;
 
+import com.scan2serve.response.ApiResponse;
 import com.scan2serve.dto.CustomerCategoryResponse;
+import com.scan2serve.entity.Order;
+import com.scan2serve.enums.OrderStatus;
 import com.scan2serve.service.CustomerService;
+import com.scan2serve.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,11 +18,56 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private OrderService orderService;
+
+    // ============================
+    // Customer Menu
+    // ============================
+
     @GetMapping("/menu")
     public List<CustomerCategoryResponse> getCustomerMenu() {
 
         return customerService.getCustomerMenu();
-
     }
 
+    // ============================
+    // Current Order
+    // ============================
+
+    @GetMapping("/order/current/{tableNumber}")
+    public ApiResponse<Order> getCurrentOrder(
+            @PathVariable Integer tableNumber) {
+
+        Order order = orderService.getCurrentOrder(tableNumber);
+
+        if (order == null) {
+
+            return new ApiResponse<>(
+                    false,
+                    "No Active Order",
+                    null);
+        }
+
+        return new ApiResponse<>(
+                true,
+                "Current Order Found",
+                order);
+    }
+
+    // ============================
+    // Order Status
+    // ============================
+
+    @GetMapping("/order/{orderId}/status")
+    public ApiResponse<OrderStatus> getOrderStatus(
+            @PathVariable Long orderId) {
+
+        OrderStatus status = orderService.getOrderStatus(orderId);
+
+        return new ApiResponse<>(
+                true,
+                "Order Status Found",
+                status);
+    }
 }

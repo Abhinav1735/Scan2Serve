@@ -2,6 +2,7 @@ package com.scan2serve.repository;
 
 import com.scan2serve.entity.Order;
 import com.scan2serve.enums.OrderStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -9,12 +10,33 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository
+        extends JpaRepository<Order, Long> {
 
-    List<Order> findByStatus(OrderStatus status);
 
-    // Find the latest active/unpaid order for a table
-    Optional<Order> findFirstByTableNumberAndStatusNotOrderByIdDesc(
+    // =====================================================
+    // FIND ORDERS BY STATUS
+    // =====================================================
+
+    List<Order> findByStatus(
+            OrderStatus status
+    );
+
+
+    // =====================================================
+    // FIND ACTIVE ORDER FOR TABLE
+    // =====================================================
+    //
+    // PAID and CANCELLED orders are considered closed.
+    //
+    // Therefore, if Table 5 already has an active order,
+    // the customer will continue using the same Order ID.
+    //
+
+    Optional<Order>
+    findFirstByTableNumberAndStatusNotInOrderByIdDesc(
             Integer tableNumber,
-            OrderStatus status);
+            List<OrderStatus> statuses
+    );
+
 }

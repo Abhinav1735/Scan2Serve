@@ -12,31 +12,49 @@
 
   <body>
     <div class="bill-container">
-      <!-- Loading -->
+      <!-- =========================================
+             LOADING
+        ========================================== -->
+
       <div id="loading" class="loading">Loading bill...</div>
 
-      <!-- Bill -->
+      <!-- =========================================
+             BILL
+        ========================================== -->
+
       <div id="billContent" class="bill-content">
+        <!-- =====================================
+                 HEADER
+            ====================================== -->
+
         <div class="header">
           <h1>Scan2Serve</h1>
 
           <p>Restaurant Digital Bill</p>
         </div>
 
-        <!-- Order Information -->
+        <!-- =====================================
+                 ORDER INFORMATION
+            ====================================== -->
+
         <div class="order-info">
           <div>
-            <strong>Order ID:</strong>
-            <span id="orderId">-</span>
+            <strong> Order ID: </strong>
+
+            <span id="orderId"> - </span>
           </div>
 
           <div>
-            <strong>Table:</strong>
-            <span id="tableNumber">-</span>
+            <strong> Table: </strong>
+
+            <span id="tableNumber"> - </span>
           </div>
         </div>
 
-        <!-- Items -->
+        <!-- =====================================
+                 ITEMS
+            ====================================== -->
+
         <table>
           <thead>
             <tr>
@@ -47,44 +65,57 @@
               <th>Unit Price</th>
 
               <th>Total</th>
+
+              <th>Status</th>
             </tr>
           </thead>
 
           <tbody id="billItems"></tbody>
         </table>
 
-        <!-- Totals -->
+        <!-- =====================================
+                 TOTALS
+            ====================================== -->
+
         <div class="totals">
           <div class="total-row">
-            <span>Subtotal</span>
+            <span> Subtotal </span>
 
-            <span> ₹<span id="subtotal">0.00</span> </span>
+            <span> ₹<span id="subtotal"> 0.00 </span> </span>
           </div>
 
           <div class="total-row">
-            <span>GST (5%)</span>
+            <span> GST (5%) </span>
 
-            <span> ₹<span id="gst">0.00</span> </span>
+            <span> ₹<span id="gst"> 0.00 </span> </span>
           </div>
 
           <div class="total-row grand-total">
-            <span>Grand Total</span>
+            <span> Grand Total </span>
 
-            <span> ₹<span id="grandTotal">0.00</span> </span>
+            <span> ₹<span id="grandTotal"> 0.00 </span> </span>
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="buttons">
-          <button class="print-btn" onclick="printBill()">🖨️ Print Bill</button>
+        <!-- =====================================
+                 CUSTOMER BUTTONS
+            ====================================== -->
 
+        <div class="buttons">
           <button class="menu-btn" onclick="goToMenu()">← Back to Menu</button>
         </div>
       </div>
 
-      <!-- Error -->
+      <!-- =========================================
+             ERROR
+        ========================================== -->
+
       <div id="error" class="error">Unable to load bill.</div>
     </div>
+
+    <!-- =========================================
+         JAVASCRIPT
+    ========================================== -->
 
     <script src="js/bill.js"></script>
   </body>

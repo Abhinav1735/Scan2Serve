@@ -1,43 +1,66 @@
-// =========================
+// =========================================================
 // API CONFIGURATION
-// =========================
+// =========================================================
 
 const API_URL = "http://127.0.0.1:8080";
 
-// =========================
-// GET URL PARAMETERS
-// =========================
+// =========================================================
+// URL PARAMETERS
+// =========================================================
 
 const params = new URLSearchParams(window.location.search);
 
-// =========================
+// =========================================================
 // GET ORDER ID
-// =========================
+// =========================================================
 
 function getOrderId() {
   return params.get("orderId");
 }
 
-// =========================
+// =========================================================
 // GET TABLE NUMBER
-// =========================
+// =========================================================
 
 function getTableNumber() {
   return params.get("table");
 }
 
-// =========================
+// =========================================================
+// GET STATUS TEXT
+// =========================================================
+
+function getStatusText(status) {
+  switch (status) {
+    case "ORDER_PLACED":
+      return "Order Placed";
+
+    case "PREPARING":
+      return "Preparing";
+
+    case "READY":
+      return "Ready";
+
+    case "SERVED":
+      return "Served";
+
+    default:
+      return "Order Placed";
+  }
+}
+
+// =========================================================
 // LOAD BILL
-// =========================
+// =========================================================
 
 async function loadBill() {
   const orderId = getOrderId();
 
   console.log("Loading bill for Order ID:", orderId);
 
-  // =========================
+  // =====================================================
   // CHECK ORDER ID
-  // =========================
+  // =====================================================
 
   if (!orderId) {
     showError("Order ID is missing.");
@@ -46,13 +69,17 @@ async function loadBill() {
   }
 
   try {
+    // =================================================
+    // API URL
+    // =================================================
+
     const url = `${API_URL}/customer/bill/${orderId}`;
 
     console.log("Request URL:", url);
 
-    // =========================
+    // =================================================
     // API REQUEST
-    // =========================
+    // =================================================
 
     const response = await fetch(url);
 
@@ -62,17 +89,17 @@ async function loadBill() {
       throw new Error(`HTTP Error: ${response.status}`);
     }
 
-    // =========================
-    // READ JSON
-    // =========================
+    // =================================================
+    // JSON RESPONSE
+    // =================================================
 
     const result = await response.json();
 
     console.log("Bill API Response:", result);
 
-    // =========================
-    // CHECK API RESPONSE
-    // =========================
+    // =================================================
+    // CHECK RESPONSE
+    // =================================================
 
     if (!result.success) {
       throw new Error(result.message || "Unable to generate bill.");
@@ -80,17 +107,17 @@ async function loadBill() {
 
     const bill = result.data;
 
-    // =========================
+    // =================================================
     // ORDER INFORMATION
-    // =========================
+    // =================================================
 
     document.getElementById("orderId").textContent = bill.orderId;
 
     document.getElementById("tableNumber").textContent = bill.tableNumber;
 
-    // =========================
+    // =================================================
     // BILL ITEMS
-    // =========================
+    // =================================================
 
     const billItems = document.getElementById("billItems");
 
@@ -98,6 +125,18 @@ async function loadBill() {
 
     bill.items.forEach((item) => {
       const row = document.createElement("tr");
+
+      // =========================================
+      // STATUS
+      // =========================================
+
+      const status = item.status || "ORDER_PLACED";
+
+      const statusText = getStatusText(status);
+
+      // =========================================
+      // ITEM ROW
+      // =========================================
 
       row.innerHTML = `
 
@@ -117,14 +156,24 @@ async function loadBill() {
                         ₹${Number(item.totalPrice).toFixed(2)}
                     </td>
 
+                    <td>
+
+                        <span
+                            class="status-badge status-${status}"
+                        >
+                            ${statusText}
+                        </span>
+
+                    </td>
+
                 `;
 
       billItems.appendChild(row);
     });
 
-    // =========================
+    // =================================================
     // TOTALS
-    // =========================
+    // =================================================
 
     document.getElementById("subtotal").textContent = Number(
       bill.subtotal,
@@ -136,9 +185,9 @@ async function loadBill() {
       bill.grandTotal,
     ).toFixed(2);
 
-    // =========================
+    // =================================================
     // SHOW BILL
-    // =========================
+    // =================================================
 
     document.getElementById("loading").style.display = "none";
 
@@ -146,13 +195,20 @@ async function loadBill() {
   } catch (error) {
     console.error("Bill Error:", error);
 
-    showError("Unable to load bill. Please try again.");
+    // Don't hide an already-loaded bill
+    // because of a temporary polling error.
+
+    const billContent = document.getElementById("billContent");
+
+    if (billContent.style.display !== "block") {
+      showError("Unable to load bill. Please try again.");
+    }
   }
 }
 
-// =========================
+// =========================================================
 // SHOW ERROR
-// =========================
+// =========================================================
 
 function showError(message) {
   document.getElementById("loading").style.display = "none";
@@ -164,41 +220,13 @@ function showError(message) {
   error.style.display = "block";
 }
 
-// =========================
-// PRINT BILL
-// =========================
-
-function printBill() {
-  window.print();
-}
-
-// =========================
+// =========================================================
 // BACK TO MENU
-// =========================
+// =========================================================
 
 function goToMenu() {
   const tableNumber = getTableNumber();
 
-  // =========================
-  // Preserve Table Number
-  // =========================
-
-  if (tableNumber) {
-    window.location.href = "menu.html?table=" + encodeURIComponent(tableNumber);
-  } else {
-    // Fallback
-
-    window.location.href = "menu.html";
-  }
-}
-
-// =========================
-// ADD MORE ITEMS
-// =========================
-
-function addMoreItems() {
-  const tableNumber = getTableNumber();
-
   if (tableNumber) {
     window.location.href = "menu.html?table=" + encodeURIComponent(tableNumber);
   } else {
@@ -206,8 +234,18 @@ function addMoreItems() {
   }
 }
 
-// =========================
-// START
-// =========================
+// =========================================================
+// AUTOMATIC BILL REFRESH
+// =========================================================
+//
+// Refresh bill every 3 seconds so the customer can see
+// kitchen status changes automatically.
+//
+
+setInterval(loadBill, 3000);
+
+// =========================================================
+// FIRST LOAD
+// =========================================================
 
 window.onload = loadBill;

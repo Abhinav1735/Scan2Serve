@@ -1,7 +1,11 @@
+// ============================
+// BACKEND URL
+// ============================
+
 const BACKEND_URL = "http://localhost:8080";
 
 // ============================
-// Get Table Number From URL
+// GET TABLE NUMBER
 // ============================
 
 const params = new URLSearchParams(window.location.search);
@@ -9,15 +13,35 @@ const params = new URLSearchParams(window.location.search);
 const tableNumber = params.get("table");
 
 // ============================
-// Validate Table Number
+// CURRENT ORDER STORAGE KEY
+// ============================
+
+function getCurrentOrderStorageKey() {
+  return "scan2serve_current_order_" + tableNumber;
+}
+
+// ============================
+// GET CURRENT ORDER ID
+// ============================
+
+function getCurrentOrderId() {
+  return localStorage.getItem(getCurrentOrderStorageKey());
+}
+
+// ============================
+// DISPLAY TABLE NUMBER
 // ============================
 
 if (!tableNumber) {
   document.getElementById("tableInfo").textContent = "Table number not found";
 
   document.getElementById("cartContainer").innerHTML = `
-        <p>Invalid table number.</p>
-    `;
+
+            <p>
+                Invalid table number.
+            </p>
+
+        `;
 } else {
   document.getElementById("tableInfo").textContent = "Table " + tableNumber;
 
@@ -25,7 +49,7 @@ if (!tableNumber) {
 }
 
 // ============================
-// Load Cart
+// LOAD CART
 // ============================
 
 async function loadCart() {
@@ -44,26 +68,28 @@ async function loadCart() {
 
     document.getElementById("cartContainer").innerHTML = `
 
-            <p>
-                Unable to load cart.
-            </p>
+                <p>
+                    Unable to load cart.
+                </p>
 
-            <p>
-                ${error.message}
-            </p>
+                <p>
+                    ${error.message}
+                </p>
 
-            <br>
+                <br>
 
-            <a href="menu.html?table=${tableNumber}">
-                Go to Menu
-            </a>
+                <a
+                    href="menu.html?table=${tableNumber}"
+                >
+                    Go to Menu
+                </a>
 
-        `;
+            `;
   }
 }
 
 // ============================
-// Display Cart
+// DISPLAY CART
 // ============================
 
 function displayCart(cartItems) {
@@ -72,23 +98,51 @@ function displayCart(cartItems) {
   container.innerHTML = "";
 
   // ============================
-  // Empty Cart
+  // VIEW CURRENT ORDER BUTTON
+  // ============================
+
+  const currentOrderId = getCurrentOrderId();
+
+  if (currentOrderId) {
+    const orderLink = document.createElement("a");
+
+    orderLink.className = "continue-button";
+
+    orderLink.href =
+      "bill.html?orderId=" +
+      encodeURIComponent(currentOrderId) +
+      "&table=" +
+      encodeURIComponent(tableNumber);
+
+    orderLink.textContent = "📋 View Current Order";
+
+    container.appendChild(orderLink);
+  }
+
+  // ============================
+  // EMPTY CART
   // ============================
 
   if (!cartItems || cartItems.length === 0) {
-    container.innerHTML = `
+    const emptyMessage = document.createElement("p");
 
-            <p>
-                Your cart is empty.
-            </p>
+    emptyMessage.textContent = "Your cart is empty.";
 
-            <br>
+    container.appendChild(emptyMessage);
 
-            <a href="menu.html?table=${tableNumber}">
-                Go to Menu
-            </a>
+    // ============================
+    // CONTINUE ORDERING
+    // ============================
 
-        `;
+    const menuLink = document.createElement("a");
+
+    menuLink.className = "continue-button";
+
+    menuLink.href = "menu.html?table=" + tableNumber;
+
+    menuLink.textContent = "Continue Ordering";
+
+    container.appendChild(menuLink);
 
     return;
   }
@@ -96,7 +150,7 @@ function displayCart(cartItems) {
   let grandTotal = 0;
 
   // ============================
-  // Display Cart Items
+  // DISPLAY CART ITEMS
   // ============================
 
   cartItems.forEach((item) => {
@@ -114,84 +168,94 @@ function displayCart(cartItems) {
 
     card.innerHTML = `
 
-            <h3>
-                ${item.menu.name}
-            </h3>
-
-            <p>
-                ${item.menu.description}
-            </p>
-
-            <p>
-                Price: ₹${price.toFixed(2)}
-            </p>
+                <h3>
+                    ${item.menu.name}
+                </h3>
 
 
-            <div class="quantity-control">
+                <p>
+                    ${item.menu.description}
+                </p>
+
+
+                <p>
+                    Price: ₹${price}
+                </p>
+
+
+                <div
+                    class="quantity-control"
+                >
+
+                    <button
+                        class="quantity-button"
+                        onclick="decreaseQuantity(
+                            ${item.id},
+                            ${quantity}
+                        )"
+                    >
+                        −
+                    </button>
+
+
+                    <span
+                        class="quantity"
+                    >
+                        ${quantity}
+                    </span>
+
+
+                    <button
+                        class="quantity-button"
+                        onclick="increaseQuantity(
+                            ${item.id},
+                            ${quantity}
+                        )"
+                    >
+                        +
+                    </button>
+
+                </div>
+
+
+                <p class="price">
+
+                    Item Total:
+                    ₹${itemTotal}
+
+                </p>
+
 
                 <button
-                    class="quantity-button"
-                    onclick="decreaseQuantity(
-                        ${item.id},
-                        ${quantity}
-                    )">
+                    class="remove-button"
+                    onclick="removeFromCart(
+                        ${item.id}
+                    )"
+                >
 
-                    −
+                    Remove
 
                 </button>
 
-
-                <span class="quantity">
-                    ${quantity}
-                </span>
-
-
-                <button
-                    class="quantity-button"
-                    onclick="increaseQuantity(
-                        ${item.id},
-                        ${quantity}
-                    )">
-
-                    +
-
-                </button>
-
-            </div>
-
-
-            <p class="price">
-                Item Total: ₹${itemTotal.toFixed(2)}
-            </p>
-
-
-            <button
-                class="remove-button"
-                onclick="removeFromCart(${item.id})">
-
-                Remove
-
-            </button>
-
-        `;
+            `;
 
     container.appendChild(card);
   });
 
   // ============================
-  // Grand Total
+  // GRAND TOTAL
   // ============================
 
   const totalElement = document.createElement("h2");
 
   totalElement.className = "cart-total";
 
-  totalElement.textContent = "Grand Total: ₹" + grandTotal.toFixed(2);
+  totalElement.textContent = "Grand Total: ₹" + grandTotal;
 
   container.appendChild(totalElement);
 
   // ============================
-  // Continue Ordering
+  // CONTINUE ORDERING
   // ============================
 
   const menuLink = document.createElement("a");
@@ -205,7 +269,7 @@ function displayCart(cartItems) {
   container.appendChild(menuLink);
 
   // ============================
-  // Place Order
+  // PLACE ORDER BUTTON
   // ============================
 
   const orderButton = document.createElement("button");
@@ -220,7 +284,7 @@ function displayCart(cartItems) {
 }
 
 // ============================
-// Increase Quantity
+// INCREASE QUANTITY
 // ============================
 
 async function increaseQuantity(cartId, currentQuantity) {
@@ -230,7 +294,7 @@ async function increaseQuantity(cartId, currentQuantity) {
 }
 
 // ============================
-// Decrease Quantity
+// DECREASE QUANTITY
 // ============================
 
 async function decreaseQuantity(cartId, currentQuantity) {
@@ -246,13 +310,14 @@ async function decreaseQuantity(cartId, currentQuantity) {
 }
 
 // ============================
-// Update Quantity
+// UPDATE QUANTITY
 // ============================
 
 async function updateQuantity(cartId, quantity) {
   try {
     const response = await fetch(
       BACKEND_URL + "/customer/cart/" + cartId + "?quantity=" + quantity,
+
       {
         method: "PUT",
       },
@@ -273,20 +338,26 @@ async function updateQuantity(cartId, quantity) {
 }
 
 // ============================
-// Remove Single Cart Item
+// REMOVE CART ITEM
 // ============================
 
 async function removeFromCart(cartId) {
   try {
-    const response = await fetch(BACKEND_URL + "/customer/cart/" + cartId, {
-      method: "DELETE",
-    });
+    const response = await fetch(
+      BACKEND_URL + "/customer/cart/" + cartId,
+
+      {
+        method: "DELETE",
+      },
+    );
 
     const result = await response.json();
 
     if (!response.ok || !result.success) {
       throw new Error(result.message || "Unable to remove item");
     }
+
+    alert("Item removed from cart successfully");
 
     loadCart();
   } catch (error) {
@@ -297,7 +368,7 @@ async function removeFromCart(cartId) {
 }
 
 // ============================
-// Place Order
+// PLACE ORDER
 // ============================
 
 async function placeOrder() {
@@ -308,17 +379,21 @@ async function placeOrder() {
   }
 
   try {
-    const response = await fetch(BACKEND_URL + "/customer/order", {
-      method: "POST",
+    const response = await fetch(
+      BACKEND_URL + "/customer/order",
 
-      headers: {
-        "Content-Type": "application/json",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          tableNumber: Number(tableNumber),
+        }),
       },
-
-      body: JSON.stringify({
-        tableNumber: Number(tableNumber),
-      }),
-    });
+    );
 
     const result = await response.json();
 
@@ -329,13 +404,25 @@ async function placeOrder() {
     console.log("Order Response:", result);
 
     // ============================
-    // SAME TABLE + ORDER SESSION
+    // SAVE CURRENT ORDER ID
     // ============================
 
-    const orderId = result.data.id;
+    localStorage.setItem(
+      getCurrentOrderStorageKey(),
+
+      result.data.id,
+    );
+
+    // ============================
+    // DIRECTLY OPEN BILL
+    // ============================
 
     window.location.href =
-      "order-success.html" + "?orderId=" + orderId + "&table=" + tableNumber;
+      "bill.html?orderId=" +
+      result.data.id +
+      "&table=" +
+      tableNumber +
+      "&orderPlaced=true";
   } catch (error) {
     console.error("Place order error:", error);
 
@@ -344,7 +431,7 @@ async function placeOrder() {
 }
 
 // ============================
-// Reload Cart When Page Is Shown
+// RELOAD CART WHEN PAGE SHOWN
 // ============================
 
 window.addEventListener("pageshow", function () {
