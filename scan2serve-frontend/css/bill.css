@@ -1,0 +1,483 @@
+* {
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+
+  background: #f4f6f8;
+
+  padding: 30px;
+}
+
+/* =========================
+   BILL CONTAINER
+========================= */
+
+.bill-container {
+  max-width: 700px;
+
+  margin: auto;
+
+  background: white;
+
+  padding: 30px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  text-align: center;
+
+  margin-bottom: 25px;
+}
+
+.header h1 {
+  color: #222;
+
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #666;
+}
+
+/* =========================
+   ORDER INFORMATION
+========================= */
+
+.order-info {
+  display: flex;
+
+  justify-content: space-between;
+
+  margin-bottom: 25px;
+
+  padding: 15px;
+
+  background: #f8f8f8;
+
+  border-radius: 8px;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-bottom: 25px;
+}
+
+th,
+td {
+  padding: 12px;
+
+  border-bottom: 1px solid #ddd;
+
+  text-align: left;
+}
+
+th {
+  background: #222;
+
+  color: white;
+}
+
+th:last-child,
+td:last-child {
+  text-align: right;
+}
+
+/* =========================
+   TOTALS
+========================= */
+
+.totals {
+  width: 100%;
+
+  max-width: 350px;
+
+  margin-left: auto;
+}
+
+.total-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 8px 0;
+}
+
+.grand-total {
+  font-size: 20px;
+
+  font-weight: bold;
+
+  border-top: 2px solid #222;
+
+  margin-top: 8px;
+
+  padding-top: 12px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.buttons {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 15px;
+
+  margin-top: 30px;
+}
+
+button {
+  padding: 12px 20px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  font-size: 15px;
+}
+
+.print-btn {
+  background: #222;
+
+  color: white;
+}
+
+.menu-btn {
+  background: #ddd;
+
+  color: #222;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.loading {
+  text-align: center;
+
+  padding: 30px;
+}
+
+/* =========================
+   BILL CONTENT
+========================= */
+
+.bill-content {
+  display: none;
+}
+
+/* =========================
+   ERROR
+========================= */
+
+.error {
+  display: none;
+
+  text-align: center;
+
+  color: red;
+
+  padding: 30px;
+}
+
+/* ==================================================
+   ORDER PLACED POPUP
+================================================== */
+
+.order-popup {
+  position: fixed;
+
+  top: 0;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  display: none;
+
+  align-items: center;
+
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+/* =========================
+   POPUP CONTENT
+========================= */
+
+.order-popup-content {
+  width: 90%;
+
+  max-width: 400px;
+
+  background: white;
+
+  padding: 35px 25px;
+
+  border-radius: 14px;
+
+  text-align: center;
+
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+
+  animation: popupScale 0.3s ease;
+}
+
+/* =========================
+   SUCCESS ICON
+========================= */
+
+.success-icon {
+  width: 65px;
+
+  height: 65px;
+
+  margin: 0 auto 15px;
+
+  border-radius: 50%;
+
+  background: #28a745;
+
+  color: white;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 38px;
+
+  font-weight: bold;
+}
+
+/* =========================
+   POPUP HEADING
+========================= */
+
+.order-popup-content h2 {
+  margin-bottom: 10px;
+
+  color: #222;
+
+  font-size: 23px;
+}
+
+/* =========================
+   POPUP MESSAGE
+========================= */
+
+.order-popup-content p {
+  color: #666;
+
+  font-size: 15px;
+
+  margin: 0;
+}
+
+/* =========================
+   POPUP ANIMATION
+========================= */
+
+@keyframes popupScale {
+  from {
+    opacity: 0;
+
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: scale(1);
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+  body {
+    padding: 15px;
+  }
+
+  .bill-container {
+    padding: 20px;
+  }
+
+  .order-info {
+    flex-direction: column;
+
+    gap: 10px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    padding: 8px;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .order-popup-content {
+    width: 92%;
+
+    padding: 30px 20px;
+  }
+
+  .order-popup-content h2 {
+    font-size: 20px;
+  }
+}
+
+/* =========================
+   PRINT
+========================= */
+
+@media print {
+  body {
+    background: white;
+
+    padding: 0;
+  }
+
+  .bill-container {
+    box-shadow: none;
+
+    width: 100%;
+
+    max-width: 100%;
+  }
+
+  .buttons {
+    display: none;
+  }
+
+  .order-popup {
+    display: none !important;
+  }
+}
+
+/* =========================================
+   ITEM STATUS
+========================================= */
+
+.status-badge {
+  display: inline-block;
+
+  padding: 6px 12px;
+
+  border-radius: 20px;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  text-align: center;
+}
+
+/* =========================================
+   ORDER PLACED
+========================================= */
+
+.status-ORDER_PLACED {
+  background-color: #fff3cd;
+
+  color: #856404;
+}
+
+/* =========================================
+   PREPARING
+========================================= */
+
+.status-PREPARING {
+  background-color: #cfe2ff;
+
+  color: #084298;
+}
+
+/* =========================================
+   READY
+========================================= */
+
+.status-READY {
+  background-color: #d1e7dd;
+
+  color: #0f5132;
+}
+
+/* =========================================
+   SERVED
+========================================= */
+
+.status-SERVED {
+  background-color: #198754;
+
+  color: #ffffff;
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 700px) {
+  table {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+  }
+
+  .status-badge {
+    padding: 5px 8px;
+
+    font-size: 11px;
+  }
+}
