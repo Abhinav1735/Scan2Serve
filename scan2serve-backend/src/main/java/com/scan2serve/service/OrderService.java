@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @Service
 @Transactional
 public class OrderService {
@@ -204,7 +205,7 @@ public class OrderService {
 
 
         // =====================================================
-        // RECALCULATE COMPLETE BILL TOTAL
+        // RECALCULATE COMPLETE ORDER TOTAL
         // =====================================================
 
         List<OrderItem> allItems =
@@ -219,7 +220,9 @@ public class OrderService {
 
         for (OrderItem item : allItems) {
 
-            if (item.getPrice() != null) {
+            if (
+                    item.getPrice() != null
+            ) {
 
                 total +=
                         item.getPrice();
@@ -364,6 +367,36 @@ public class OrderService {
                         );
 
 
+        // =====================================================
+        // PAID ORDER CANNOT BE REOPENED
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.PAID
+        ) {
+
+            throw new IllegalStateException(
+                    "Paid order cannot be reopened"
+            );
+        }
+
+
+        // =====================================================
+        // CANCELLED ORDER CANNOT BE MODIFIED
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.CANCELLED
+        ) {
+
+            throw new IllegalStateException(
+                    "Cancelled order cannot be modified"
+            );
+        }
+
+
         order.setStatus(
                 status
         );
@@ -395,6 +428,10 @@ public class OrderService {
 
     public List<KitchenOrderResponse> getKitchenOrders() {
 
+        // =====================================================
+        // ONLY ACTIVE ORDERS
+        // =====================================================
+
         List<OrderStatus> kitchenStatuses =
                 List.of(
                         OrderStatus.PENDING,
@@ -418,10 +455,6 @@ public class OrderService {
         // =====================================================
 
         for (Order order : orders) {
-
-            // =================================================
-            // GET ALL ITEMS OF THIS ORDER
-            // =================================================
 
             List<OrderItem> orderItems =
                     orderItemRepository.findByOrder(
@@ -498,11 +531,6 @@ public class OrderService {
     // =========================================================
     // KITCHEN - UPDATE INDIVIDUAL ITEM STATUS
     // =========================================================
-    //
-    // ORDER_PLACED -> PREPARING -> READY -> SERVED
-    //
-    // Parent Order status is synchronized automatically.
-    //
 
     public OrderItem updateItemStatus(
             Long itemId,
@@ -522,6 +550,44 @@ public class OrderService {
                                         "Order Item Not Found"
                                 )
                         );
+
+
+        // =====================================================
+        // GET PARENT ORDER
+        // =====================================================
+
+        Order order =
+                currentItem.getOrder();
+
+
+        // =====================================================
+        // PAID ORDER CANNOT BE MODIFIED
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.PAID
+        ) {
+
+            throw new IllegalStateException(
+                    "Cannot update item status because the order is already paid"
+            );
+        }
+
+
+        // =====================================================
+        // CANCELLED ORDER CANNOT BE MODIFIED
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.CANCELLED
+        ) {
+
+            throw new IllegalStateException(
+                    "Cannot update item status because the order is cancelled"
+            );
+        }
 
 
         // =====================================================
@@ -552,7 +618,8 @@ public class OrderService {
         // =====================================================
 
         if (
-                newStatus != OrderItemStatus.SERVED
+                newStatus
+                        != OrderItemStatus.SERVED
         ) {
 
             currentItem =
@@ -562,7 +629,7 @@ public class OrderService {
 
 
             synchronizeOrderStatus(
-                    currentItem.getOrder()
+                    order
             );
 
 
@@ -581,13 +648,13 @@ public class OrderService {
 
 
         // =====================================================
-        // FIND ALL SAME FOOD IN SAME ORDER
+        // FIND SAME FOOD IN SAME ORDER
         // =====================================================
 
         List<OrderItem> sameItems =
                 orderItemRepository
                         .findByOrderAndMenuId(
-                                currentItem.getOrder(),
+                                order,
                                 currentItem.getMenu().getId()
                         );
 
@@ -623,7 +690,7 @@ public class OrderService {
         ) {
 
             synchronizeOrderStatus(
-                    currentItem.getOrder()
+                    order
             );
 
 
@@ -706,7 +773,7 @@ public class OrderService {
 
 
         // =====================================================
-        // DELETE OTHER SERVED DUPLICATE BATCHES
+        // DELETE OTHER SERVED DUPLICATES
         // =====================================================
 
         for (OrderItem item : servedItems) {
@@ -730,7 +797,7 @@ public class OrderService {
         // =====================================================
 
         synchronizeOrderStatus(
-                mergeTarget.getOrder()
+                order
         );
 
 
@@ -741,15 +808,6 @@ public class OrderService {
     // =========================================================
     // KITCHEN - VALIDATE ITEM STATUS TRANSITION
     // =========================================================
-    //
-    // Allowed:
-    //
-    // ORDER_PLACED -> PREPARING
-    // PREPARING    -> READY
-    // READY        -> SERVED
-    //
-    // Same status is also allowed.
-    //
 
     private void validateStatusTransition(
             OrderItemStatus currentStatus,
@@ -757,10 +815,12 @@ public class OrderService {
     ) {
 
         // =====================================================
-        // NEW STATUS NULL CHECK
+        // NEW STATUS NULL
         // =====================================================
 
-        if (newStatus == null) {
+        if (
+                newStatus == null
+        ) {
 
             throw new IllegalArgumentException(
                     "New item status cannot be null"
@@ -769,10 +829,12 @@ public class OrderService {
 
 
         // =====================================================
-        // CURRENT STATUS NULL CHECK
+        // CURRENT STATUS NULL
         // =====================================================
 
-        if (currentStatus == null) {
+        if (
+                currentStatus == null
+        ) {
 
             if (
                     newStatus
@@ -792,12 +854,10 @@ public class OrderService {
         // =====================================================
         // SAME STATUS
         // =====================================================
-        //
-        // This makes the operation idempotent.
-        //
 
         if (
-                currentStatus == newStatus
+                currentStatus
+                        == newStatus
         ) {
 
             return;
@@ -872,25 +932,51 @@ public class OrderService {
 
 
     // =========================================================
-    // KITCHEN - SYNCHRONIZE ORDER STATUS
+    // SYNCHRONIZE PARENT ORDER STATUS
     // =========================================================
-    //
-    // Order status is derived from all OrderItem statuses.
     //
     // ORDER_PLACED -> PENDING
     // PREPARING    -> PREPARING
     // READY        -> READY
     // SERVED       -> SERVED
     //
-    // Mixed statuses use the earliest incomplete stage.
+    // IMPORTANT:
+    // PAID and CANCELLED orders are never reopened.
     //
+    // =========================================================
 
     private void synchronizeOrderStatus(
             Order order
     ) {
 
         // =====================================================
-        // GET ALL ITEMS OF ORDER
+        // NEVER REOPEN PAID ORDER
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.PAID
+        ) {
+
+            return;
+        }
+
+
+        // =====================================================
+        // NEVER REOPEN CANCELLED ORDER
+        // =====================================================
+
+        if (
+                order.getStatus()
+                        == OrderStatus.CANCELLED
+        ) {
+
+            return;
+        }
+
+
+        // =====================================================
+        // GET ALL ITEMS
         // =====================================================
 
         List<OrderItem> items =
@@ -945,7 +1031,9 @@ public class OrderService {
             // NULL STATUS
             // =================================================
 
-            if (status == null) {
+            if (
+                    status == null
+            ) {
 
                 hasOrderPlaced =
                         true;
@@ -1077,6 +1165,23 @@ public class OrderService {
     // =========================================================
     // BILL GENERATION
     // =========================================================
+    //
+    // ALL ITEMS ARE DISPLAYED.
+    //
+    // ONLY:
+    //
+    // READY
+    // SERVED
+    //
+    // ARE INCLUDED IN SUBTOTAL.
+    //
+    // PREPARING + ORDER_PLACED:
+    //
+    // visible = YES
+    // status = YES
+    // amount included = NO
+    //
+    // =========================================================
 
     public BillResponse generateBill(
             Long orderId
@@ -1177,7 +1282,7 @@ public class OrderService {
 
 
             // =================================================
-            // ADD BILL ITEM
+            // ADD ITEM TO BILL RESPONSE
             // =================================================
 
             items.add(
@@ -1200,11 +1305,26 @@ public class OrderService {
 
 
             // =================================================
-            // SUBTOTAL
+            // BILLING RULE
+            // =================================================
+            //
+            // ONLY READY + SERVED ARE BILLABLE.
+            //
             // =================================================
 
-            subtotal +=
-                    item.getPrice();
+            if (
+                    item.getStatus()
+                            == OrderItemStatus.READY
+
+                            ||
+
+                            item.getStatus()
+                                    == OrderItemStatus.SERVED
+            ) {
+
+                subtotal +=
+                        item.getPrice();
+            }
         }
 
 
@@ -1265,4 +1385,155 @@ public class OrderService {
         return bill;
     }
 
+
+    // =========================================================
+    // BILL DESK - SEARCH BILL BY ORDER ID
+    // =========================================================
+
+    public Order searchBillByOrderId(
+            Long orderId
+    ) {
+
+        return orderRepository
+                .findById(
+                        orderId
+                )
+                .filter(
+                        order ->
+                                order.getStatus()
+                                        == OrderStatus.PAID
+                )
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Paid Bill Not Found for Order ID: "
+                                        + orderId
+                        )
+                );
+    }
+
+
+    // =========================================================
+    // BILL DESK - SEARCH BILLS BY TABLE NUMBER
+    // =========================================================
+
+    public List<Order> searchBillsByTableNumber(
+            Integer tableNumber
+    ) {
+
+        if (
+                tableNumber == null
+        ) {
+
+            throw new IllegalArgumentException(
+                    "Table number is required"
+            );
+        }
+
+
+        return orderRepository
+                .findAll()
+                .stream()
+                .filter(
+                        order ->
+
+                                order.getStatus()
+                                        == OrderStatus.PAID
+
+                                        &&
+
+                                        order.getTableNumber()
+                                                != null
+
+                                        &&
+
+                                        order.getTableNumber()
+                                                .equals(
+                                                        tableNumber
+                                                )
+                )
+                .toList();
+    }
+
+
+    // =========================================================
+    // BILL DESK - SEARCH BILLS BY DATE
+    // =========================================================
+
+    public List<Order> searchBillsByDate(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    ) {
+
+        // =====================================================
+        // VALIDATE DATES
+        // =====================================================
+
+        if (
+                startDateTime == null
+                        ||
+                        endDateTime == null
+        ) {
+
+            throw new IllegalArgumentException(
+                    "Start date and end date are required"
+            );
+        }
+
+
+        if (
+                startDateTime.isAfter(
+                        endDateTime
+                )
+        ) {
+
+            throw new IllegalArgumentException(
+                    "Start date cannot be after end date"
+            );
+        }
+
+
+        // =====================================================
+        // SEARCH PAID ORDERS
+        // =====================================================
+
+        return orderRepository
+                .findAll()
+                .stream()
+                .filter(
+                        order -> {
+
+                            if (
+                                    order.getStatus()
+                                            != OrderStatus.PAID
+                            ) {
+
+                                return false;
+                            }
+
+
+                            if (
+                                    order.getOrderTime()
+                                            == null
+                            ) {
+
+                                return false;
+                            }
+
+
+                            return
+                                    !order.getOrderTime()
+                                            .isBefore(
+                                                    startDateTime
+                                            )
+
+                                            &&
+
+                                            order.getOrderTime()
+                                                    .isBefore(
+                                                            endDateTime
+                                                    );
+                        }
+                )
+                .toList();
+    }
 }

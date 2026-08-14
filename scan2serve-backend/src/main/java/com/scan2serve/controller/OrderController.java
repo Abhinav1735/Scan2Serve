@@ -5,6 +5,8 @@ import com.scan2serve.dto.KitchenOrderResponse;
 import com.scan2serve.dto.OrderItemStatusRequest;
 import com.scan2serve.dto.OrderRequest;
 import com.scan2serve.dto.OrderStatusRequest;
+import com.scan2serve.dto.PaymentRequest;
+import com.scan2serve.dto.PaymentResponse;
 
 import com.scan2serve.entity.Order;
 import com.scan2serve.entity.OrderItem;
@@ -12,13 +14,18 @@ import com.scan2serve.entity.OrderItem;
 import com.scan2serve.enums.OrderStatus;
 
 import com.scan2serve.response.ApiResponse;
+
 import com.scan2serve.service.OrderService;
+import com.scan2serve.service.PaymentService;
 
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 
@@ -28,6 +35,10 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+
+    @Autowired
+    private PaymentService paymentService;
 
 
     // =========================================================
@@ -56,6 +67,10 @@ public class OrderController {
                 order
         );
     }
+
+
+
+
 
 
     // =========================================================
@@ -174,7 +189,8 @@ public class OrderController {
     // =========================================================
 
     @GetMapping("/kitchen/orders")
-    public ApiResponse<List<KitchenOrderResponse>> getKitchenOrders() {
+    public ApiResponse<List<KitchenOrderResponse>>
+    getKitchenOrders() {
 
         return new ApiResponse<>(
                 true,
@@ -210,4 +226,164 @@ public class OrderController {
         );
     }
 
+
+    // =========================================================
+    // BILL DESK APIs
+    // =========================================================
+
+
+    // =========================================================
+    // BILL DESK - GET BILL
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/orders/{orderId}/bill"
+    )
+    public ApiResponse<BillResponse> getBillDeskBill(
+            @PathVariable Long orderId
+    ) {
+
+        BillResponse bill =
+                orderService.generateBill(
+                        orderId
+                );
+
+
+        return new ApiResponse<>(
+                true,
+                "Bill Found",
+                bill
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - PROCESS PAYMENT
+    // =========================================================
+
+    @PostMapping(
+            "/bill-desk/orders/{orderId}/payment"
+    )
+    public ApiResponse<PaymentResponse> processPayment(
+            @PathVariable Long orderId,
+            @RequestBody PaymentRequest request
+    ) {
+
+        PaymentResponse payment =
+                paymentService.processPayment(
+                        orderId,
+                        request.getPaymentMethod()
+                );
+
+
+        return new ApiResponse<>(
+                true,
+                "Payment Completed Successfully",
+                payment
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - GET PAYMENT
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/orders/{orderId}/payment"
+    )
+    public ApiResponse<PaymentResponse> getPayment(
+            @PathVariable Long orderId
+    ) {
+
+        PaymentResponse payment =
+                paymentService.getPaymentByOrderId(
+                        orderId
+                );
+
+
+        return new ApiResponse<>(
+                true,
+                "Payment Found",
+                payment
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - SEARCH BY ORDER ID
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/search/order/{orderId}"
+    )
+    public ApiResponse<Order> searchBillByOrderId(
+            @PathVariable Long orderId
+    ) {
+
+        return new ApiResponse<>(
+                true,
+                "Bill Found",
+                orderService.searchBillByOrderId(
+                        orderId
+                )
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - SEARCH BY TABLE NUMBER
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/search/table/{tableNumber}"
+    )
+    public ApiResponse<List<Order>> searchBillsByTableNumber(
+            @PathVariable Integer tableNumber
+    ) {
+
+        return new ApiResponse<>(
+                true,
+                "Bills Found",
+                orderService.searchBillsByTableNumber(
+                        tableNumber
+                )
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - SEARCH BY DATE
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/search/date/{date}"
+    )
+    public ApiResponse<List<Order>> searchBillsByDate(
+            @PathVariable String date
+    ) {
+
+        LocalDate selectedDate =
+                LocalDate.parse(
+                        date
+                );
+
+
+        LocalDateTime startDateTime =
+                selectedDate.atStartOfDay();
+
+
+        LocalDateTime endDateTime =
+                selectedDate.plusDays(1)
+                        .atStartOfDay();
+
+
+        return new ApiResponse<>(
+                true,
+                "Bills Found",
+                orderService.searchBillsByDate(
+                        startDateTime,
+                        endDateTime
+                )
+        );
+    }
 }

@@ -1,15 +1,17 @@
 package com.scan2serve.exception;
 
+
 import com.scan2serve.exception.custom.*;
+import com.scan2serve.response.ApiResponse;
+
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import com.scan2serve.response.ApiResponse;
 
 
 @RestControllerAdvice
@@ -19,6 +21,7 @@ public class GlobalExceptionHandler {
     // ==========================
     // Menu Exceptions
     // ==========================
+
 
     @ExceptionHandler(MenuNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleMenuNotFound(
@@ -92,6 +95,7 @@ public class GlobalExceptionHandler {
     // Category Exceptions
     // ==========================
 
+
     @ExceptionHandler(CategoryNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleCategoryNotFound(
             CategoryNotFoundException ex
@@ -129,6 +133,7 @@ public class GlobalExceptionHandler {
     // ==========================
     // Cart Exceptions
     // ==========================
+
 
     @ExceptionHandler(CartItemNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleCartItemNotFound(
@@ -168,6 +173,7 @@ public class GlobalExceptionHandler {
     // Order Exception
     // ==========================
 
+
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleOrderNotFound(
             OrderNotFoundException ex
@@ -190,6 +196,7 @@ public class GlobalExceptionHandler {
     // Exceptions
     // ==========================
 
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalState(
             IllegalStateException ex
@@ -208,8 +215,31 @@ public class GlobalExceptionHandler {
 
 
     // ==========================
+    // Payment Exceptions
+    // ==========================
+
+
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handlePaymentNotFound(
+            PaymentNotFoundException ex
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                ex.getMessage(),
+                                null
+                        )
+                );
+    }
+
+
+    // ==========================
     // Table Exceptions
     // ==========================
+
 
     @ExceptionHandler(TableNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleTableNotFound(
@@ -249,6 +279,7 @@ public class GlobalExceptionHandler {
     // Validation Exception
     // ==========================
 
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidation(
             MethodArgumentNotValidException ex
@@ -276,6 +307,7 @@ public class GlobalExceptionHandler {
     // Generic Exception
     // ==========================
 
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(
             Exception ex
@@ -294,4 +326,5 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
 }

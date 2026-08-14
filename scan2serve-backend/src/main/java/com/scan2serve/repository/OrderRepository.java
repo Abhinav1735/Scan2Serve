@@ -6,8 +6,10 @@ import com.scan2serve.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
 
 @Repository
 public interface OrderRepository
@@ -26,17 +28,6 @@ public interface OrderRepository
     // =====================================================
     // FIND ORDERS BY MULTIPLE STATUSES
     // =====================================================
-    //
-    // Used by Kitchen Dashboard.
-    //
-    // Kitchen needs to see:
-    //
-    // PENDING
-    // PREPARING
-    // READY
-    //
-    // instead of only PENDING orders.
-    //
 
     List<Order> findByStatusIn(
             List<OrderStatus> statuses
@@ -46,12 +37,6 @@ public interface OrderRepository
     // =====================================================
     // FIND ACTIVE ORDER FOR TABLE
     // =====================================================
-    //
-    // PAID and CANCELLED orders are considered closed.
-    //
-    // Therefore, if Table 5 already has an active order,
-    // the customer will continue using the same Order ID.
-    //
 
     Optional<Order>
     findFirstByTableNumberAndStatusNotInOrderByIdDesc(
@@ -59,4 +44,36 @@ public interface OrderRepository
             List<OrderStatus> statuses
     );
 
+
+    // =====================================================
+    // BILL DESK - SEARCH PAID BILLS BY ORDER ID
+    // =====================================================
+
+    Optional<Order> findByIdAndStatus(
+            Long id,
+            OrderStatus status
+    );
+
+
+    // =====================================================
+    // BILL DESK - SEARCH PAID BILLS BY TABLE NUMBER
+    // =====================================================
+
+    List<Order>
+    findByTableNumberAndStatusOrderByOrderTimeDesc(
+            Integer tableNumber,
+            OrderStatus status
+    );
+
+
+    // =====================================================
+    // BILL DESK - SEARCH PAID BILLS BY DATE RANGE
+    // =====================================================
+
+    List<Order>
+    findByStatusAndOrderTimeGreaterThanEqualAndOrderTimeLessThan(
+            OrderStatus status,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 }
