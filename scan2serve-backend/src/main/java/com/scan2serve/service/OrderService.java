@@ -26,57 +26,73 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @Service
 @Transactional
 public class OrderService {
 
+
     @Autowired
     private OrderRepository orderRepository;
+
 
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+
     @Autowired
     private CartRepository cartRepository;
+
 
 
     // =========================================================
     // CUSTOMER - PLACE ORDER
     // =========================================================
 
-    public Order placeOrder(OrderRequest request) {
+    public Order placeOrder(
+            OrderRequest request
+    ) {
 
         if (request == null) {
+
             throw new RuntimeException(
                     "Order Request is required"
             );
         }
 
+
         Integer tableNumber =
                 request.getTableNumber();
 
+
         if (tableNumber == null) {
+
             throw new RuntimeException(
                     "Table Number is required"
             );
         }
+
 
         List<Cart> cartItems =
                 cartRepository.findByTableNumber(
                         tableNumber
                 );
 
+
         if (cartItems.isEmpty()) {
+
             throw new RuntimeException(
                     "Cart is Empty"
             );
         }
+
 
         List<OrderStatus> closedStatuses =
                 List.of(
                         OrderStatus.PAID,
                         OrderStatus.CANCELLED
                 );
+
 
         Order order =
                 orderRepository
@@ -85,6 +101,7 @@ public class OrderService {
                                 closedStatuses
                         )
                         .orElse(null);
+
 
         if (order == null) {
 
@@ -112,47 +129,58 @@ public class OrderService {
                     );
         }
 
+
         for (Cart cart : cartItems) {
 
             OrderItem item =
                     new OrderItem();
 
+
             item.setOrder(
                     order
             );
+
 
             item.setMenu(
                     cart.getMenu()
             );
 
+
             item.setQuantity(
                     cart.getQuantity()
             );
 
+
             item.setStatus(
                     OrderItemStatus.ORDER_PLACED
             );
+
 
             double price =
                     cart.getMenu().getPrice()
                             *
                             cart.getQuantity();
 
+
             item.setPrice(
                     price
             );
+
 
             orderItemRepository.save(
                     item
             );
         }
 
+
         List<OrderItem> allItems =
                 orderItemRepository.findByOrder(
                         order
                 );
 
+
         double total = 0.0;
+
 
         for (OrderItem item : allItems) {
 
@@ -163,25 +191,31 @@ public class OrderService {
             }
         }
 
+
         order.setTotalAmount(
                 total
         );
+
 
         order =
                 orderRepository.save(
                         order
                 );
 
+
         synchronizeOrderStatus(
                 order
         );
+
 
         cartRepository.deleteByTableNumber(
                 tableNumber
         );
 
+
         return order;
     }
+
 
 
     // =========================================================
@@ -199,11 +233,13 @@ public class OrderService {
             );
         }
 
+
         List<OrderStatus> closedStatuses =
                 List.of(
                         OrderStatus.PAID,
                         OrderStatus.CANCELLED
                 );
+
 
         return orderRepository
                 .findFirstByTableNumberAndStatusNotInOrderByIdDesc(
@@ -216,6 +252,7 @@ public class OrderService {
                         )
                 );
     }
+
 
 
     // =========================================================
@@ -236,8 +273,10 @@ public class OrderService {
                                 )
                         );
 
+
         return order.getStatus();
     }
+
 
 
     // =========================================================
@@ -248,6 +287,7 @@ public class OrderService {
 
         return orderRepository.findAll();
     }
+
 
 
     // =========================================================
@@ -269,6 +309,7 @@ public class OrderService {
     }
 
 
+
     // =========================================================
     // ADMIN - UPDATE ORDER STATUS
     // =========================================================
@@ -285,6 +326,7 @@ public class OrderService {
             );
         }
 
+
         Order order =
                 orderRepository.findById(
                                 id
@@ -295,14 +337,17 @@ public class OrderService {
                                 )
                         );
 
+
         order.setStatus(
                 status
         );
+
 
         return orderRepository.save(
                 order
         );
     }
+
 
 
     // =========================================================
@@ -319,6 +364,7 @@ public class OrderService {
     }
 
 
+
     // =========================================================
     // KITCHEN - GET ACTIVE ORDERS
     // =========================================================
@@ -332,13 +378,16 @@ public class OrderService {
                         OrderStatus.READY
                 );
 
+
         List<Order> orders =
                 orderRepository.findByStatusIn(
                         kitchenStatuses
                 );
 
+
         List<KitchenOrderResponse> response =
                 new ArrayList<>();
+
 
         for (Order order : orders) {
 
@@ -347,8 +396,10 @@ public class OrderService {
                             order
                     );
 
+
             List<KitchenOrderItemResponse> items =
                     new ArrayList<>();
+
 
             for (OrderItem item : orderItems) {
 
@@ -362,10 +413,12 @@ public class OrderService {
                                 item.getStatus()
                         );
 
+
                 items.add(
                         itemResponse
                 );
             }
+
 
             KitchenOrderResponse orderResponse =
                     new KitchenOrderResponse(
@@ -377,13 +430,16 @@ public class OrderService {
                             items
                     );
 
+
             response.add(
                     orderResponse
             );
         }
 
+
         return response;
     }
+
 
 
     // =========================================================
@@ -402,6 +458,7 @@ public class OrderService {
             );
         }
 
+
         OrderItem currentItem =
                 orderItemRepository.findById(
                                 itemId
@@ -412,22 +469,27 @@ public class OrderService {
                                 )
                         );
 
+
         OrderItemStatus currentStatus =
                 currentItem.getStatus();
+
 
         validateStatusTransition(
                 currentStatus,
                 newStatus
         );
 
+
         currentItem.setStatus(
                 newStatus
         );
+
 
         currentItem =
                 orderItemRepository.save(
                         currentItem
                 );
+
 
         if (
                 newStatus
@@ -441,12 +503,15 @@ public class OrderService {
                     );
         }
 
+
         synchronizeOrderStatus(
                 currentItem.getOrder()
         );
 
+
         return currentItem;
     }
+
 
 
     // =========================================================
@@ -469,6 +534,7 @@ public class OrderService {
                                 )
                         );
 
+
         OrderItem item =
                 orderItemRepository
                         .findByIdAndOrder(
@@ -481,11 +547,13 @@ public class OrderService {
                                 )
                         );
 
+
         return updateItemStatus(
                 item.getId(),
                 newStatus
         );
     }
+
 
 
     // =========================================================
@@ -501,6 +569,7 @@ public class OrderService {
                         .getMenu()
                         .getId();
 
+
         List<OrderItem> sameItems =
                 orderItemRepository
                         .findByOrderAndMenuId(
@@ -508,8 +577,10 @@ public class OrderService {
                                 menuId
                         );
 
+
         List<OrderItem> servedItems =
                 new ArrayList<>();
+
 
         for (OrderItem item : sameItems) {
 
@@ -525,13 +596,16 @@ public class OrderService {
             }
         }
 
+
         if (servedItems.size() <= 1) {
 
             return currentItem;
         }
 
+
         OrderItem mergeTarget =
                 servedItems.get(0);
+
 
         for (OrderItem item : servedItems) {
 
@@ -545,9 +619,12 @@ public class OrderService {
             }
         }
 
+
         int mergedQuantity = 0;
 
+
         double mergedPrice = 0.0;
+
 
         for (OrderItem item : servedItems) {
 
@@ -557,6 +634,7 @@ public class OrderService {
                         item.getQuantity();
             }
 
+
             if (item.getPrice() != null) {
 
                 mergedPrice +=
@@ -564,22 +642,27 @@ public class OrderService {
             }
         }
 
+
         mergeTarget.setQuantity(
                 mergedQuantity
         );
+
 
         mergeTarget.setPrice(
                 mergedPrice
         );
 
+
         mergeTarget.setStatus(
                 OrderItemStatus.SERVED
         );
+
 
         mergeTarget =
                 orderItemRepository.save(
                         mergeTarget
                 );
+
 
         for (OrderItem item : servedItems) {
 
@@ -596,8 +679,10 @@ public class OrderService {
             }
         }
 
+
         return mergeTarget;
     }
+
 
 
     // =========================================================
@@ -616,6 +701,7 @@ public class OrderService {
             );
         }
 
+
         if (currentStatus == null) {
 
             if (
@@ -629,13 +715,16 @@ public class OrderService {
                 );
             }
 
+
             return;
         }
+
 
         if (currentStatus == newStatus) {
 
             return;
         }
+
 
         if (
                 currentStatus
@@ -650,6 +739,7 @@ public class OrderService {
             return;
         }
 
+
         if (
                 currentStatus
                         ==
@@ -662,6 +752,7 @@ public class OrderService {
 
             return;
         }
+
 
         if (
                 currentStatus
@@ -676,6 +767,7 @@ public class OrderService {
             return;
         }
 
+
         throw new IllegalStateException(
                 "Invalid status transition: "
                         +
@@ -686,6 +778,7 @@ public class OrderService {
                         newStatus
         );
     }
+
 
 
     // =========================================================
@@ -701,20 +794,27 @@ public class OrderService {
                         order
                 );
 
+
         if (items.isEmpty()) {
 
             return;
         }
 
+
         boolean hasOrderPlaced = false;
+
         boolean hasPreparing = false;
+
         boolean hasReady = false;
+
         boolean hasServed = false;
+
 
         for (OrderItem item : items) {
 
             OrderItemStatus status =
                     item.getStatus();
+
 
             if (status == null) {
 
@@ -722,6 +822,7 @@ public class OrderService {
 
                 continue;
             }
+
 
             if (
                     status
@@ -757,7 +858,9 @@ public class OrderService {
             }
         }
 
+
         OrderStatus newOrderStatus;
+
 
         if (hasOrderPlaced) {
 
@@ -785,6 +888,7 @@ public class OrderService {
                     OrderStatus.PENDING;
         }
 
+
         if (
                 order.getStatus()
                         !=
@@ -795,11 +899,13 @@ public class OrderService {
                     newOrderStatus
             );
 
+
             orderRepository.save(
                     order
             );
         }
     }
+
 
 
     // =========================================================
@@ -814,10 +920,12 @@ public class OrderService {
                         OrderStatus.CANCELLED
                 );
 
+
         return orderRepository.findByStatusNotIn(
                 closedStatuses
         );
     }
+
 
 
     // =========================================================
@@ -838,6 +946,7 @@ public class OrderService {
                                 )
                         );
 
+
         if (
                 order.getStatus()
                         ==
@@ -848,6 +957,7 @@ public class OrderService {
                     "Order is already PAID"
             );
         }
+
 
         if (
                 order.getStatus()
@@ -860,14 +970,17 @@ public class OrderService {
             );
         }
 
+
         order.setStatus(
                 OrderStatus.PAID
         );
+
 
         return orderRepository.save(
                 order
         );
     }
+
 
 
     // =========================================================
@@ -888,6 +1001,7 @@ public class OrderService {
                                 )
                         );
 
+
         if (
                 order.getStatus()
                         !=
@@ -899,8 +1013,10 @@ public class OrderService {
             );
         }
 
+
         return order;
     }
+
 
 
     // =========================================================
@@ -918,6 +1034,7 @@ public class OrderService {
             );
         }
 
+
         return orderRepository
                 .findByStatus(
                         OrderStatus.PAID
@@ -934,6 +1051,7 @@ public class OrderService {
                 )
                 .toList();
     }
+
 
 
     // =========================================================
@@ -956,6 +1074,7 @@ public class OrderService {
             );
         }
 
+
         return orderRepository
                 .findByStatus(
                         OrderStatus.PAID
@@ -971,6 +1090,7 @@ public class OrderService {
 
                                 return false;
                             }
+
 
                             return
                                     !order.getOrderTime()
@@ -988,6 +1108,7 @@ public class OrderService {
     }
 
 
+
     // =========================================================
     // BILL DESK - OLD BILLS
     // =========================================================
@@ -1002,15 +1123,18 @@ public class OrderService {
 
         LocalDateTime endDateTime = null;
 
+
         if (date != null) {
 
             startDateTime =
                     date.atStartOfDay();
 
+
             endDateTime =
                     date.plusDays(1)
                             .atStartOfDay();
         }
+
 
         return orderRepository.searchOldBills(
                 OrderStatus.PAID,
@@ -1020,6 +1144,7 @@ public class OrderService {
                 endDateTime
         );
     }
+
 
 
     // =========================================================
@@ -1032,6 +1157,11 @@ public class OrderService {
     // PREPARING    -> shown, not billable
     // READY        -> shown, billable
     // SERVED       -> shown, billable
+    //
+    // PAYMENT STATUS:
+    // The current OrderStatus is also exposed as
+    // paymentStatus in BillResponse.
+    //
     // =========================================================
 
     public BillResponse generateBill(
@@ -1048,10 +1178,12 @@ public class OrderService {
                                 )
                         );
 
+
         return buildCustomerBill(
                 order
         );
     }
+
 
 
     // =========================================================
@@ -1073,12 +1205,14 @@ public class OrderService {
                                 )
                         );
 
+
         if (tableNumber == null) {
 
             throw new RuntimeException(
                     "Table Number is required"
             );
         }
+
 
         if (
                 !tableNumber.equals(
@@ -1091,10 +1225,12 @@ public class OrderService {
             );
         }
 
+
         return buildCustomerBill(
                 order
         );
     }
+
 
 
     // =========================================================
@@ -1104,6 +1240,7 @@ public class OrderService {
     // ALL ITEMS ARE SHOWN.
     //
     // Only READY + SERVED affect the amount.
+    //
     // =========================================================
 
     public BillResponse generateBillForBillDesk(
@@ -1120,10 +1257,12 @@ public class OrderService {
                                 )
                         );
 
+
         return buildBillForBillDesk(
                 order
         );
     }
+
 
 
     // =========================================================
@@ -1139,10 +1278,13 @@ public class OrderService {
                         order
                 );
 
+
         List<BillItemResponse> items =
                 new ArrayList<>();
 
+
         double subtotal = 0.0;
+
 
         for (OrderItem item : orderItems) {
 
@@ -1155,41 +1297,53 @@ public class OrderService {
                 continue;
             }
 
+
             if (item.getPrice() == null) {
 
                 continue;
             }
+
 
             if (item.getMenu() == null) {
 
                 continue;
             }
 
+
             double unitPrice =
                     item.getPrice()
                             /
                             item.getQuantity();
 
+
             BillItemResponse billItem =
                     new BillItemResponse();
+
 
             billItem.setItemName(
                     item.getMenu().getName()
             );
 
+
             billItem.setQuantity(
                     item.getQuantity()
             );
+
 
             billItem.setUnitPrice(
                     unitPrice
             );
 
+
             billItem.setTotalPrice(
                     item.getPrice()
             );
 
-            // Preserve the actual kitchen status.
+
+            // =================================================
+            // PRESERVE ACTUAL KITCHEN STATUS
+            // =================================================
+
             if (item.getStatus() != null) {
 
                 billItem.setStatus(
@@ -1203,12 +1357,20 @@ public class OrderService {
                 );
             }
 
-            // ALL items are displayed.
+
+            // =================================================
+            // ALL ITEMS ARE DISPLAYED
+            // =================================================
+
             items.add(
                     billItem
             );
 
-            // Only READY and SERVED are billable.
+
+            // =================================================
+            // ONLY READY + SERVED ARE BILLABLE
+            // =================================================
+
             if (
                     item.getStatus()
                             ==
@@ -1224,41 +1386,100 @@ public class OrderService {
             }
         }
 
+
+        // =====================================================
+        // GST
+        // =====================================================
+
         double gst =
                 subtotal * 0.05;
+
+
+        // =====================================================
+        // GRAND TOTAL
+        // =====================================================
 
         double grandTotal =
                 subtotal + gst;
 
+
+        // =====================================================
+        // CREATE BILL RESPONSE
+        // =====================================================
+
         BillResponse bill =
                 new BillResponse();
+
 
         bill.setOrderId(
                 order.getId()
         );
 
+
         bill.setTableNumber(
                 order.getTableNumber()
         );
+
 
         bill.setItems(
                 items
         );
 
+
         bill.setSubtotal(
                 subtotal
         );
+
 
         bill.setGst(
                 gst
         );
 
+
         bill.setGrandTotal(
                 grandTotal
         );
 
+
+        // =====================================================
+        // PAYMENT STATUS
+        // =====================================================
+        //
+        // Bill Desk marks the Order as PAID.
+        //
+        // The customer-side bill receives that status
+        // through paymentStatus.
+        //
+        // For a normal active order, this will normally be:
+        //
+        // PENDING
+        // PREPARING
+        // READY
+        // SERVED
+        //
+        // After payment:
+        //
+        // PAID
+        //
+        // =====================================================
+
+        if (order.getStatus() != null) {
+
+            bill.setPaymentStatus(
+                    order.getStatus().name()
+            );
+
+        } else {
+
+            bill.setPaymentStatus(
+                    "UNPAID"
+            );
+        }
+
+
         return bill;
     }
+
 
 
     // =========================================================
@@ -1275,6 +1496,7 @@ public class OrderService {
     // SERVED       -> displayed, BILLABLE
     //
     // The real status is preserved.
+    //
     // =========================================================
 
     private BillResponse buildBillForBillDesk(
@@ -1286,10 +1508,13 @@ public class OrderService {
                         order
                 );
 
+
         List<BillItemResponse> items =
                 new ArrayList<>();
 
+
         double subtotal = 0.0;
+
 
         for (OrderItem item : orderItems) {
 
@@ -1306,15 +1531,18 @@ public class OrderService {
                 continue;
             }
 
+
             if (item.getPrice() == null) {
 
                 continue;
             }
 
+
             if (item.getMenu() == null) {
 
                 continue;
             }
+
 
             // -------------------------------------------------
             // UNIT PRICE
@@ -1325,6 +1553,7 @@ public class OrderService {
                             /
                             item.getQuantity();
 
+
             // -------------------------------------------------
             // CREATE BILL ITEM
             // -------------------------------------------------
@@ -1332,21 +1561,26 @@ public class OrderService {
             BillItemResponse billItem =
                     new BillItemResponse();
 
+
             billItem.setItemName(
                     item.getMenu().getName()
             );
+
 
             billItem.setQuantity(
                     item.getQuantity()
             );
 
+
             billItem.setUnitPrice(
                     unitPrice
             );
 
+
             billItem.setTotalPrice(
                     item.getPrice()
             );
+
 
             // -------------------------------------------------
             // PRESERVE ACTUAL STATUS
@@ -1365,6 +1599,7 @@ public class OrderService {
                 );
             }
 
+
             // -------------------------------------------------
             // ADD EVERY ITEM TO BILL DESK
             // -------------------------------------------------
@@ -1372,6 +1607,7 @@ public class OrderService {
             items.add(
                     billItem
             );
+
 
             // -------------------------------------------------
             // ONLY READY + SERVED ARE BILLABLE
@@ -1392,12 +1628,14 @@ public class OrderService {
             }
         }
 
+
         // =====================================================
         // GST
         // =====================================================
 
         double gst =
                 subtotal * 0.05;
+
 
         // =====================================================
         // GRAND TOTAL
@@ -1406,6 +1644,7 @@ public class OrderService {
         double grandTotal =
                 subtotal + gst;
 
+
         // =====================================================
         // CREATE BILL RESPONSE
         // =====================================================
@@ -1413,32 +1652,40 @@ public class OrderService {
         BillResponse bill =
                 new BillResponse();
 
+
         bill.setOrderId(
                 order.getId()
         );
+
 
         bill.setTableNumber(
                 order.getTableNumber()
         );
 
+
         bill.setItems(
                 items
         );
+
 
         bill.setSubtotal(
                 subtotal
         );
 
+
         bill.setGst(
                 gst
         );
+
 
         bill.setGrandTotal(
                 grandTotal
         );
 
+
         return bill;
     }
+
 
 
     // =========================================================
@@ -1459,13 +1706,16 @@ public class OrderService {
                                 )
                         );
 
+
         List<OrderItem> orderItems =
                 orderItemRepository.findByOrder(
                         order
                 );
 
+
         List<KitchenOrderItemResponse> response =
                 new ArrayList<>();
+
 
         for (OrderItem item : orderItems) {
 
@@ -1479,10 +1729,12 @@ public class OrderService {
                             item.getStatus()
                     );
 
+
             response.add(
                     itemResponse
             );
         }
+
 
         return response;
     }

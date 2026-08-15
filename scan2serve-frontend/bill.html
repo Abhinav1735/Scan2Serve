@@ -8,10 +8,108 @@
     <title>Scan2Serve - Bill</title>
 
     <link rel="stylesheet" href="css/bill.css" />
+
+    <!-- =====================================================
+         PAYMENT SUCCESS STYLES
+    ====================================================== -->
+
+    <style>
+      .payment-success-message {
+        display: flex;
+
+        align-items: center;
+
+        gap: 14px;
+
+        margin: 0 0 20px 0;
+
+        padding: 18px;
+
+        border: 1px solid #35c96b;
+
+        border-radius: 12px;
+
+        background: rgba(35, 180, 92, 0.12);
+
+        animation: paymentSuccessFadeIn 0.3s ease-in-out;
+      }
+
+      .payment-success-icon {
+        width: 46px;
+
+        height: 46px;
+
+        min-width: 46px;
+
+        border-radius: 50%;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        background: #24a957;
+
+        color: white;
+
+        font-size: 26px;
+
+        font-weight: bold;
+      }
+
+      .payment-success-content h3 {
+        margin: 0;
+
+        color: #35df75;
+
+        font-size: 19px;
+      }
+
+      .payment-success-content p {
+        margin: 5px 0 0;
+
+        color: #b8c0c7;
+
+        font-size: 14px;
+      }
+
+      @keyframes paymentSuccessFadeIn {
+        from {
+          opacity: 0;
+
+          transform: translateY(-8px);
+        }
+
+        to {
+          opacity: 1;
+
+          transform: translateY(0);
+        }
+      }
+    </style>
   </head>
 
   <body>
     <div class="bill-container">
+      <!-- =========================================
+           PAYMENT SUCCESS
+      ========================================== -->
+
+      <div
+        id="paymentSuccessMessage"
+        class="payment-success-message"
+        style="display: none"
+      >
+        <div class="payment-success-icon">✓</div>
+
+        <div class="payment-success-content">
+          <h3>Payment Successful</h3>
+
+          <p>Your payment has been completed successfully.</p>
+        </div>
+      </div>
+
       <!-- =========================================
            LOADING
       ========================================== -->
