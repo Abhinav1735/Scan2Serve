@@ -82,9 +82,9 @@ const payButton = document.getElementById("payButton");
 
 const paidMessage = document.getElementById("paidMessage");
 
-const printButton = document.getElementById("printButton");
-
 const refreshBillButton = document.getElementById("refreshBillButton");
+
+const printButton = document.getElementById("printButton");
 
 // =========================================================
 // STATE
@@ -95,6 +95,12 @@ let currentOrderId = null;
 let currentBill = null;
 
 let currentBillIsOldBill = false;
+
+// =========================================================
+// TAB STATE
+// =========================================================
+
+const BILL_DESK_TAB_KEY = "scan2serve_bill_desk_selected_tab";
 
 // =========================================================
 // AUTO REFRESH
@@ -109,9 +115,23 @@ const AUTO_REFRESH_INTERVAL = 60 * 1000;
 document.addEventListener("DOMContentLoaded", () => {
   updateDateTime();
 
+  const selectedTab = getSelectedTab();
+
+  // Restore selected tab first.
+  restoreSelectedTab();
+
+  // Active bills data is always loaded.
   loadActiveBills();
 
-  loadRecentBills();
+  // If user was on Old Bills before
+  // refreshing the page, load Old Bills.
+  if (selectedTab === "old") {
+    if (hasActiveSearch()) {
+      searchOldBills();
+    } else {
+      loadRecentBills();
+    }
+  }
 });
 
 // =========================================================
@@ -123,14 +143,30 @@ setInterval(() => {
 
   updateDateTime();
 
-  // Refresh active bills
+  // -----------------------------------------------------
+  // ACTIVE BILLS
+  // -----------------------------------------------------
+
   loadActiveBills();
 
-  // Refresh recent/old bills
-  loadRecentBills();
+  // -----------------------------------------------------
+  // OLD BILLS
+  // -----------------------------------------------------
 
-  // If a bill is currently open,
-  // refresh that bill too.
+  const selectedTab = getSelectedTab();
+
+  if (selectedTab === "old") {
+    if (hasActiveSearch()) {
+      searchOldBills();
+    } else {
+      loadRecentBills();
+    }
+  }
+
+  // -----------------------------------------------------
+  // OPEN BILL DETAILS
+  // -----------------------------------------------------
+
   if (currentOrderId !== null) {
     openBill(currentOrderId, currentBillIsOldBill);
   }
@@ -155,14 +191,57 @@ function updateDateTime() {
     minute: "2-digit",
   };
 
-  currentDate.textContent = now.toLocaleString("en-IN", options);
+  if (currentDate) {
+    currentDate.textContent = now.toLocaleString("en-IN", options);
+  }
 }
 
 // =========================================================
-// TABS
+// GET SELECTED TAB
+// =========================================================
+//
+// IMPORTANT:
+// localStorage is used so the selected tab
+// survives hard refresh.
 // =========================================================
 
-activeBillsTab.addEventListener("click", () => {
+function getSelectedTab() {
+  const storedTab = localStorage.getItem(BILL_DESK_TAB_KEY);
+
+  if (storedTab === "old") {
+    return "old";
+  }
+
+  return "active";
+}
+
+// =========================================================
+// SAVE SELECTED TAB
+// =========================================================
+
+function saveSelectedTab(tab) {
+  localStorage.setItem(BILL_DESK_TAB_KEY, tab);
+}
+
+// =========================================================
+// RESTORE SELECTED TAB
+// =========================================================
+
+function restoreSelectedTab() {
+  const selectedTab = getSelectedTab();
+
+  if (selectedTab === "old") {
+    showOldBillsTab(false);
+  } else {
+    showActiveBillsTab(false);
+  }
+}
+
+// =========================================================
+// SHOW ACTIVE BILLS TAB
+// =========================================================
+
+function showActiveBillsTab(saveState = true) {
   activeBillsTab.classList.add("active");
 
   oldBillsTab.classList.remove("active");
@@ -170,9 +249,17 @@ activeBillsTab.addEventListener("click", () => {
   activeBillsSection.classList.remove("hidden");
 
   oldBillsSection.classList.add("hidden");
-});
 
-oldBillsTab.addEventListener("click", () => {
+  if (saveState) {
+    saveSelectedTab("active");
+  }
+}
+
+// =========================================================
+// SHOW OLD BILLS TAB
+// =========================================================
+
+function showOldBillsTab(saveState = true) {
   oldBillsTab.classList.add("active");
 
   activeBillsTab.classList.remove("active");
@@ -181,7 +268,29 @@ oldBillsTab.addEventListener("click", () => {
 
   activeBillsSection.classList.add("hidden");
 
-  loadRecentBills();
+  if (saveState) {
+    saveSelectedTab("old");
+  }
+}
+
+// =========================================================
+// TAB EVENTS
+// =========================================================
+
+activeBillsTab.addEventListener("click", () => {
+  showActiveBillsTab(true);
+
+  loadActiveBills();
+});
+
+oldBillsTab.addEventListener("click", () => {
+  showOldBillsTab(true);
+
+  if (hasActiveSearch()) {
+    searchOldBills();
+  } else {
+    loadRecentBills();
+  }
 });
 
 // =========================================================
@@ -220,6 +329,8 @@ async function loadActiveBills() {
       return;
     }
 
+    noActiveBills.classList.add("hidden");
+
     displayActiveBills(orders);
   } catch (error) {
     console.error("Active bill error:", error);
@@ -253,13 +364,11 @@ function displayActiveBills(orders) {
             🛎
           </div>
 
-
           <div>
 
             <h3>
               Order #${order.id}
             </h3>
-
 
             <div class="table-number">
               Table ${order.tableNumber ?? "-"}
@@ -269,17 +378,15 @@ function displayActiveBills(orders) {
 
         </div>
 
-
         <div class="bill-amount">
 
           ₹${formatMoney(getOrderAmount(order))}
 
         </div>
 
-
         <button
           class="view-bill-button"
-          onclick="openBill(${order.id})"
+          onclick="openBill(${order.id}, false)"
         >
 
           ◉ View Bill
@@ -293,18 +400,42 @@ function displayActiveBills(orders) {
 }
 
 // =========================================================
-// LOAD RECENT BILLS
+// ACTIVE BILLS MANUAL REFRESH
 // =========================================================
 //
-// Backend returns PAID orders only.
-// We display the most recent bills.
+// This is separate from the 1-minute
+// automatic refresh.
+// =========================================================
+
+if (refreshActiveButton) {
+  refreshActiveButton.addEventListener("click", async () => {
+    const originalText = refreshActiveButton.innerHTML;
+
+    refreshActiveButton.disabled = true;
+
+    refreshActiveButton.innerHTML = "↻ Refreshing...";
+
+    try {
+      await loadActiveBills();
+    } catch (error) {
+      console.error("Manual active bill refresh error:", error);
+    } finally {
+      refreshActiveButton.disabled = false;
+
+      refreshActiveButton.innerHTML = originalText;
+    }
+  });
+}
+
+// =========================================================
+// LOAD OLD BILLS
 // =========================================================
 
 async function loadRecentBills() {
   try {
     recentBillsContainer.innerHTML = `
       <div class="loading">
-        Loading recent bills...
+        Loading old bills...
       </div>
     `;
 
@@ -313,12 +444,11 @@ async function loadRecentBills() {
     const result = await response.json();
 
     if (!response.ok || !result.success) {
-      throw new Error(result.message || "Unable to load recent bills.");
+      throw new Error(result.message || "Unable to load old bills.");
     }
 
     let bills = Array.isArray(result.data) ? result.data : [];
 
-    // Most recent first
     bills.sort((a, b) => {
       const dateA = new Date(a.orderTime || 0);
 
@@ -327,16 +457,15 @@ async function loadRecentBills() {
       return dateB - dateA;
     });
 
-    // Show recent 10
     bills = bills.slice(0, 10);
 
     displayRecentBills(bills);
   } catch (error) {
-    console.error("Recent bills error:", error);
+    console.error("Old bills error:", error);
 
     recentBillsContainer.innerHTML = `
       <div class="loading">
-        Unable to load recent bills.<br>
+        Unable to load old bills.<br>
         ${escapeHtml(error.message)}
       </div>
     `;
@@ -344,7 +473,7 @@ async function loadRecentBills() {
 }
 
 // =========================================================
-// DISPLAY RECENT BILLS
+// DISPLAY OLD BILLS
 // =========================================================
 
 function displayRecentBills(bills) {
@@ -396,7 +525,6 @@ function displayRecentBills(bills) {
 
     </thead>
 
-
     <tbody></tbody>
 
   `;
@@ -412,21 +540,17 @@ function displayRecentBills(bills) {
           Order #${order.id}
         </td>
 
-
         <td>
           Table ${order.tableNumber ?? "-"}
         </td>
-
 
         <td>
           ${formatDateTime(order.orderTime)}
         </td>
 
-
         <td>
           ₹${formatMoney(getOrderAmount(order))}
         </td>
-
 
         <td>
 
@@ -435,7 +559,6 @@ function displayRecentBills(bills) {
           </span>
 
         </td>
-
 
         <td>
 
@@ -446,7 +569,6 @@ function displayRecentBills(bills) {
           >
             ◉
           </button>
-
 
           <button
             class="table-action print-action"
@@ -469,10 +591,78 @@ function displayRecentBills(bills) {
 }
 
 // =========================================================
-// SEARCH OLD BILLS
+// RECENT BILLS MANUAL REFRESH
+// =========================================================
+
+if (refreshRecentButton) {
+  refreshRecentButton.addEventListener("click", async () => {
+    // Make sure refresh never
+    // changes the selected section.
+    showOldBillsTab(true);
+
+    const originalText = refreshRecentButton.innerHTML;
+
+    refreshRecentButton.disabled = true;
+
+    refreshRecentButton.innerHTML = "↻ Refreshing...";
+
+    try {
+      if (hasActiveSearch()) {
+        await searchOldBills();
+      } else {
+        await loadRecentBills();
+      }
+    } catch (error) {
+      console.error("Manual recent bill refresh error:", error);
+    } finally {
+      refreshRecentButton.disabled = false;
+
+      refreshRecentButton.innerHTML = originalText;
+    }
+  });
+}
+
+// =========================================================
+// SEARCH BUTTON
 // =========================================================
 
 searchButton.addEventListener("click", searchOldBills);
+
+// =========================================================
+// ENTER KEY SEARCH
+// =========================================================
+
+orderIdInput.addEventListener("keydown", handleSearchEnter);
+
+tableNumberInput.addEventListener("keydown", handleSearchEnter);
+
+dateInput.addEventListener("keydown", handleSearchEnter);
+
+function handleSearchEnter(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+
+    searchOldBills();
+  }
+}
+
+// =========================================================
+// CHECK ACTIVE SEARCH
+// =========================================================
+
+function hasActiveSearch() {
+  const orderId = orderIdInput.value.trim();
+
+  const tableNumber = tableNumberInput.value.trim();
+
+  const date = dateInput.value;
+
+  return Boolean(orderId || tableNumber || date);
+}
+
+// =========================================================
+// SEARCH OLD BILLS
+// =========================================================
 
 async function searchOldBills() {
   const orderId = orderIdInput.value.trim();
@@ -491,6 +681,12 @@ async function searchOldBills() {
     searchButton.disabled = true;
 
     searchButton.textContent = "Searching...";
+
+    recentBillsContainer.innerHTML = `
+      <div class="loading">
+        Searching old bills...
+      </div>
+    `;
 
     const params = new URLSearchParams();
 
@@ -561,31 +757,10 @@ clearButton.addEventListener("click", () => {
 
   searchMessage.classList.add("hidden");
 
+  // Remain on Old Bills.
+  showOldBillsTab(true);
+
   loadRecentBills();
-});
-
-// =========================================================
-// REFRESH RECENT BILLS
-// =========================================================
-
-refreshRecentButton.addEventListener("click", loadRecentBills);
-
-// =========================================================
-// ACTIVE BILLS - MANUAL REFRESH
-// =========================================================
-
-refreshActiveButton.addEventListener("click", async () => {
-  refreshActiveButton.disabled = true;
-
-  refreshActiveButton.textContent = "↻ Refreshing...";
-
-  try {
-    await loadActiveBills();
-  } finally {
-    refreshActiveButton.disabled = false;
-
-    refreshActiveButton.textContent = "↻ Refresh";
-  }
 });
 
 // =========================================================
@@ -604,6 +779,8 @@ function showSearchMessage(message, success, error) {
   if (error) {
     searchMessage.classList.add("error");
   }
+
+  searchMessage.classList.remove("hidden");
 }
 
 // =========================================================
@@ -654,7 +831,11 @@ async function openBill(orderId, isOldBill = false) {
 // DISPLAY BILL
 // =========================================================
 //
-// Screen shows ALL items and their status.
+// SCREEN:
+// ALL ITEMS + STATUS
+//
+// PRINT:
+// READY + SERVED ONLY
 // =========================================================
 
 function displayBill(bill, isOldBill) {
@@ -685,16 +866,13 @@ function displayBill(bill, isOldBill) {
           ${escapeHtml(item.itemName || "-")}
         </td>
 
-
         <td>
           ${item.quantity ?? 0}
         </td>
 
-
         <td>
           ₹${formatMoney(item.unitPrice ?? item.price ?? 0)}
         </td>
-
 
         <td>
           ₹${formatMoney(
@@ -703,15 +881,12 @@ function displayBill(bill, isOldBill) {
           )}
         </td>
 
-
         <td>
 
           <span
             class="status ${statusClass}"
           >
-
             ${formatStatus(status)}
-
           </span>
 
         </td>
@@ -727,15 +902,52 @@ function displayBill(bill, isOldBill) {
 
   modalGrandTotal.textContent = `₹${formatMoney(bill.grandTotal)}`;
 
+  // Old Bill
   if (isOldBill) {
     paymentSection.classList.add("hidden");
 
     paidMessage.classList.remove("hidden");
-  } else {
+  }
+
+  // Active Bill
+  else {
     paymentSection.classList.remove("hidden");
 
     paidMessage.classList.add("hidden");
   }
+}
+
+// =========================================================
+// BILL DETAILS MANUAL REFRESH
+// =========================================================
+//
+// IMPORTANT:
+// currentOrderId and currentBillIsOldBill
+// are preserved.
+// =========================================================
+
+if (refreshBillButton) {
+  refreshBillButton.addEventListener("click", async () => {
+    if (currentOrderId === null) {
+      return;
+    }
+
+    const originalText = refreshBillButton.innerHTML;
+
+    refreshBillButton.disabled = true;
+
+    refreshBillButton.innerHTML = "↻ Refreshing...";
+
+    try {
+      await openBill(currentOrderId, currentBillIsOldBill);
+    } catch (error) {
+      console.error("Manual bill refresh error:", error);
+    } finally {
+      refreshBillButton.disabled = false;
+
+      refreshBillButton.innerHTML = originalText;
+    }
+  });
 }
 
 // =========================================================
@@ -791,10 +1003,18 @@ async function processPayment() {
 
     alert("Payment completed successfully.");
 
-    // Refresh both sections
+    // Refresh active bills.
     loadActiveBills();
 
-    loadRecentBills();
+    // If Old Bills is selected,
+    // refresh it without switching tabs.
+    if (getSelectedTab() === "old") {
+      if (hasActiveSearch()) {
+        searchOldBills();
+      } else {
+        loadRecentBills();
+      }
+    }
   } catch (error) {
     console.error("Payment error:", error);
 
@@ -807,39 +1027,12 @@ async function processPayment() {
 }
 
 // =========================================================
-// VIEW BILL - MANUAL REFRESH
-// =========================================================
-
-refreshBillButton.addEventListener("click", async () => {
-  if (currentOrderId === null) {
-    return;
-  }
-
-  refreshBillButton.disabled = true;
-
-  refreshBillButton.textContent = "↻ Refreshing...";
-
-  try {
-    await openBill(currentOrderId, currentBillIsOldBill);
-  } finally {
-    refreshBillButton.disabled = false;
-
-    refreshBillButton.textContent = "↻ Refresh Bill";
-  }
-});
-
-// =========================================================
 // PRINT BILL
 // =========================================================
 //
-// PRINT RULE:
+// ONLY READY + SERVED ITEMS
 //
-// ORDER_PLACED -> NOT PRINTED
-// PREPARING    -> NOT PRINTED
-// READY        -> PRINTED
-// SERVED       -> PRINTED
-//
-// Status column is completely removed.
+// STATUS COLUMN IS NOT PRINTED
 // =========================================================
 
 printButton.addEventListener("click", () => {
@@ -862,21 +1055,15 @@ async function printBill(orderId) {
 
     const allItems = Array.isArray(bill.items) ? bill.items : [];
 
-    // =====================================================
-    // ONLY READY + SERVED ITEMS ARE PRINTED
-    // =====================================================
+    // -----------------------------------------------------
+    // READY + SERVED ONLY
+    // -----------------------------------------------------
 
     const printableItems = allItems.filter((item) => {
       const status = String(item.status || "").toUpperCase();
 
       return status === "READY" || status === "SERVED";
     });
-
-    // =====================================================
-    // BUILD PRINT ROWS
-    //
-    // NO STATUS COLUMN
-    // =====================================================
 
     const rows = printableItems
       .map((item) => {
@@ -892,16 +1079,13 @@ async function printBill(orderId) {
                   ${escapeHtml(item.itemName || "-")}
                 </td>
 
-
                 <td>
                   ${item.quantity ?? 0}
                 </td>
 
-
                 <td>
                   ₹${formatMoney(item.unitPrice ?? item.price ?? 0)}
                 </td>
-
 
                 <td>
                   ₹${formatMoney(total)}
@@ -930,10 +1114,11 @@ async function printBill(orderId) {
 
       <head>
 
+        <meta charset="UTF-8">
+
         <title>
           Scan2Serve Bill #${bill.orderId}
         </title>
-
 
         <style>
 
@@ -951,22 +1136,25 @@ async function printBill(orderId) {
 
           }
 
-
           h1 {
 
             text-align:
               center;
 
-          }
+            margin-bottom:
+              5px;
 
+          }
 
           .subtitle {
 
             text-align:
               center;
 
-          }
+            margin-bottom:
+              20px;
 
+          }
 
           .info {
 
@@ -981,7 +1169,6 @@ async function printBill(orderId) {
 
           }
 
-
           table {
 
             width:
@@ -991,7 +1178,6 @@ async function printBill(orderId) {
               collapse;
 
           }
-
 
           th,
           td {
@@ -1007,14 +1193,12 @@ async function printBill(orderId) {
 
           }
 
-
           th {
 
             background:
               #eee;
 
           }
-
 
           .note {
 
@@ -1025,7 +1209,6 @@ async function printBill(orderId) {
               13px;
 
           }
-
 
           .totals {
 
@@ -1040,7 +1223,6 @@ async function printBill(orderId) {
 
           }
 
-
           .total-row {
 
             display:
@@ -1053,7 +1235,6 @@ async function printBill(orderId) {
               6px 0;
 
           }
-
 
           .grand {
 
@@ -1068,23 +1249,61 @@ async function printBill(orderId) {
 
           }
 
+          .thank-you {
+
+            text-align:
+              center;
+
+            margin-top:
+              35px;
+
+            padding-top:
+              15px;
+
+            border-top:
+              1px solid #ddd;
+
+            font-size:
+              14px;
+
+            color:
+              #555;
+
+          }
+
+          .thank-you-main {
+
+            font-size:
+              15px;
+
+            font-weight:
+              bold;
+
+            margin-bottom:
+              5px;
+
+          }
+
+          .thank-you-sub {
+
+            font-size:
+              12px;
+
+          }
+
         </style>
 
       </head>
 
-
       <body>
-
 
         <h1>
           SCAN2SERVE
         </h1>
 
-
         <div class="subtitle">
           Restaurant Bill
         </div>
-
 
         <div class="info">
 
@@ -1092,13 +1311,11 @@ async function printBill(orderId) {
             Order #${bill.orderId}
           </strong>
 
-
           <strong>
             Table ${bill.tableNumber}
           </strong>
 
         </div>
-
 
         <table>
 
@@ -1110,16 +1327,13 @@ async function printBill(orderId) {
                 Item
               </th>
 
-
               <th>
                 Qty
               </th>
 
-
               <th>
                 Unit Price
               </th>
-
 
               <th>
                 Total
@@ -1129,19 +1343,23 @@ async function printBill(orderId) {
 
           </thead>
 
-
           <tbody>
 
             ${
               rows ||
               `
+
                 <tr>
 
                   <td colspan="4">
-                    No READY or SERVED items available.
+
+                    No READY or SERVED
+                    items available.
+
                   </td>
 
                 </tr>
+
               `
             }
 
@@ -1149,17 +1367,14 @@ async function printBill(orderId) {
 
         </table>
 
-
         <div class="note">
 
-          Only READY and SERVED items are included
-          in the payable bill.
+          Only READY and SERVED items
+          are included in the payable bill.
 
         </div>
 
-
         <div class="totals">
-
 
           <div class="total-row">
 
@@ -1167,13 +1382,11 @@ async function printBill(orderId) {
               Subtotal
             </span>
 
-
             <strong>
               ₹${formatMoney(bill.subtotal)}
             </strong>
 
           </div>
-
 
           <div class="total-row">
 
@@ -1181,13 +1394,11 @@ async function printBill(orderId) {
               GST (5%)
             </span>
 
-
             <strong>
               ₹${formatMoney(bill.gst)}
             </strong>
 
           </div>
-
 
           <div class="total-row grand">
 
@@ -1195,16 +1406,29 @@ async function printBill(orderId) {
               Grand Total
             </span>
 
-
             <strong>
               ₹${formatMoney(bill.grandTotal)}
             </strong>
 
           </div>
 
-
         </div>
 
+        <div class="thank-you">
+
+          <div class="thank-you-main">
+
+            Thank you for dining with us!
+
+          </div>
+
+          <div class="thank-you-sub">
+
+            We hope to serve you again.
+
+          </div>
+
+        </div>
 
         <script>
 
@@ -1215,8 +1439,7 @@ async function printBill(orderId) {
 
             };
 
-        </script>
-
+        <\/script>
 
       </body>
 
@@ -1265,9 +1488,17 @@ function getOrderAmount(order) {
   return Number(order.totalAmount ?? order.grandTotal ?? 0);
 }
 
+// =========================================================
+// FORMAT MONEY
+// =========================================================
+
 function formatMoney(value) {
   return Number(value || 0).toFixed(2);
 }
+
+// =========================================================
+// FORMAT DATE/TIME
+// =========================================================
 
 function formatDateTime(value) {
   if (!value) {
@@ -1293,11 +1524,19 @@ function formatDateTime(value) {
   });
 }
 
+// =========================================================
+// FORMAT STATUS
+// =========================================================
+
 function formatStatus(status) {
   return String(status || "-")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
+// =========================================================
+// ESCAPE HTML
+// =========================================================
 
 function escapeHtml(value) {
   return String(value ?? "")

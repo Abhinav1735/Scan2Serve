@@ -50,6 +50,82 @@ function getStatusText(status) {
 }
 
 // =========================================================
+// SHOW PAYMENT SUCCESS
+// =========================================================
+
+function showPaymentSuccess() {
+  const existingMessage = document.getElementById("paymentSuccessMessage");
+
+  // Do not create the message again
+  // on every 3-second refresh.
+  if (existingMessage) {
+    existingMessage.style.display = "flex";
+
+    return;
+  }
+
+  const successMessage = document.createElement("div");
+
+  successMessage.id = "paymentSuccessMessage";
+
+  successMessage.className = "payment-success-message";
+
+  successMessage.innerHTML = `
+
+    <div class="payment-success-icon">
+      ✓
+    </div>
+
+    <div class="payment-success-content">
+
+      <h3>
+        Payment Successful
+      </h3>
+
+      <p>
+        Your payment has been completed successfully.
+      </p>
+
+    </div>
+
+  `;
+
+  const billContainer = document.querySelector(".bill-container");
+
+  if (billContainer) {
+    billContainer.insertBefore(successMessage, billContainer.firstChild);
+  }
+}
+
+// =========================================================
+// HIDE PAYMENT SUCCESS
+// =========================================================
+
+function hidePaymentSuccess() {
+  const successMessage = document.getElementById("paymentSuccessMessage");
+
+  if (successMessage) {
+    successMessage.style.display = "none";
+  }
+}
+
+// =========================================================
+// UPDATE PAYMENT STATUS
+// =========================================================
+
+function updatePaymentStatus(paymentStatus) {
+  const status = String(paymentStatus || "").toUpperCase();
+
+  console.log("Payment Status:", status);
+
+  if (status === "PAID") {
+    showPaymentSuccess();
+  } else {
+    hidePaymentSuccess();
+  }
+}
+
+// =========================================================
 // LOAD BILL
 // =========================================================
 
@@ -108,6 +184,12 @@ async function loadBill() {
     const bill = result.data;
 
     // =================================================
+    // PAYMENT STATUS
+    // =================================================
+
+    updatePaymentStatus(bill.paymentStatus);
+
+    // =================================================
     // ORDER INFORMATION
     // =================================================
 
@@ -126,47 +208,51 @@ async function loadBill() {
     bill.items.forEach((item) => {
       const row = document.createElement("tr");
 
-      // =========================================
+      // =============================================
       // STATUS
-      // =========================================
+      // =============================================
 
       const status = item.status || "ORDER_PLACED";
 
       const statusText = getStatusText(status);
 
-      // =========================================
+      // =============================================
       // ITEM ROW
-      // =========================================
+      // =============================================
 
       row.innerHTML = `
 
-                    <td>
-                        ${item.itemName}
-                    </td>
+          <td>
+            ${item.itemName}
+          </td>
 
-                    <td>
-                        ${item.quantity}
-                    </td>
 
-                    <td>
-                        ₹${Number(item.unitPrice).toFixed(2)}
-                    </td>
+          <td>
+            ${item.quantity}
+          </td>
 
-                    <td>
-                        ₹${Number(item.totalPrice).toFixed(2)}
-                    </td>
 
-                    <td>
+          <td>
+            ₹${Number(item.unitPrice).toFixed(2)}
+          </td>
 
-                        <span
-                            class="status-badge status-${status}"
-                        >
-                            ${statusText}
-                        </span>
 
-                    </td>
+          <td>
+            ₹${Number(item.totalPrice).toFixed(2)}
+          </td>
 
-                `;
+
+          <td>
+
+            <span
+              class="status-badge status-${status}"
+            >
+              ${statusText}
+            </span>
+
+          </td>
+
+        `;
 
       billItems.appendChild(row);
     });
@@ -238,9 +324,12 @@ function goToMenu() {
 // AUTOMATIC BILL REFRESH
 // =========================================================
 //
-// Refresh bill every 3 seconds so the customer can see
-// kitchen status changes automatically.
+// Refresh bill every 3 seconds so the customer can see:
 //
+// - Kitchen status changes
+// - Payment status changes
+//
+// =========================================================
 
 setInterval(loadBill, 3000);
 
