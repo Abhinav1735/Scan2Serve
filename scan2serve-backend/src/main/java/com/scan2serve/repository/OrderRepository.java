@@ -4,12 +4,13 @@ import com.scan2serve.entity.Order;
 import com.scan2serve.enums.OrderStatus;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
 
 @Repository
 public interface OrderRepository
@@ -35,6 +36,15 @@ public interface OrderRepository
 
 
     // =====================================================
+    // FIND ORDERS THAT ARE NOT CLOSED
+    // =====================================================
+
+    List<Order> findByStatusNotIn(
+            List<OrderStatus> statuses
+    );
+
+
+    // =====================================================
     // FIND ACTIVE ORDER FOR TABLE
     // =====================================================
 
@@ -46,34 +56,63 @@ public interface OrderRepository
 
 
     // =====================================================
-    // BILL DESK - SEARCH PAID BILLS BY ORDER ID
+    // BILL DESK - SEARCH OLD BILLS
+    // =====================================================
+    //
+    // Current Order entity does NOT contain paidTime.
+    // Therefore old bills are searched using orderTime.
+    //
+    // Filters:
+    // 1. Order ID
+    // 2. Table Number
+    // 3. Date
+    //
+    // Only PAID orders are returned.
+    //
     // =====================================================
 
-    Optional<Order> findByIdAndStatus(
-            Long id,
-            OrderStatus status
-    );
+    @Query("""
+            SELECT o
+            FROM Order o
+            WHERE o.status = :status
 
+            AND (
+                :orderId IS NULL
+                OR o.id = :orderId
+            )
 
-    // =====================================================
-    // BILL DESK - SEARCH PAID BILLS BY TABLE NUMBER
-    // =====================================================
+            AND (
+                :tableNumber IS NULL
+                OR o.tableNumber = :tableNumber
+            )
 
-    List<Order>
-    findByTableNumberAndStatusOrderByOrderTimeDesc(
-            Integer tableNumber,
-            OrderStatus status
-    );
+            AND (
+                :startDateTime IS NULL
+                OR o.orderTime >= :startDateTime
+            )
 
+            AND (
+                :endDateTime IS NULL
+                OR o.orderTime < :endDateTime
+            )
 
-    // =====================================================
-    // BILL DESK - SEARCH PAID BILLS BY DATE RANGE
-    // =====================================================
+            ORDER BY o.orderTime DESC
+            """)
+    List<Order> searchOldBills(
 
-    List<Order>
-    findByStatusAndOrderTimeGreaterThanEqualAndOrderTimeLessThan(
+            @Param("status")
             OrderStatus status,
+
+            @Param("orderId")
+            Long orderId,
+
+            @Param("tableNumber")
+            Integer tableNumber,
+
+            @Param("startDateTime")
             LocalDateTime startDateTime,
+
+            @Param("endDateTime")
             LocalDateTime endDateTime
     );
 }

@@ -5,10 +5,15 @@ import com.scan2serve.enums.OrderItemStatus;
 public class KitchenOrderItemResponse {
 
     private Long itemId;
+
     private Long menuId;
+
     private String itemName;
+
     private Integer quantity;
+
     private Double price;
+
     private OrderItemStatus status;
 
 
@@ -30,10 +35,15 @@ public class KitchenOrderItemResponse {
     ) {
 
         this.itemId = itemId;
+
         this.menuId = menuId;
+
         this.itemName = itemName;
+
         this.quantity = quantity;
+
         this.price = price;
+
         this.status = status;
     }
 

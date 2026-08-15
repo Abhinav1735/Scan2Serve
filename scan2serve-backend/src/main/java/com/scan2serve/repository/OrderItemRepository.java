@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderItemRepository
@@ -19,6 +20,16 @@ public interface OrderItemRepository
     // =====================================================
 
     List<OrderItem> findByOrder(
+            Order order
+    );
+
+
+    // =====================================================
+    // FIND ONE ITEM BELONGING TO ONE ORDER
+    // =====================================================
+
+    Optional<OrderItem> findByIdAndOrder(
+            Long id,
             Order order
     );
 
@@ -42,5 +53,4 @@ public interface OrderItemRepository
             Long menuId,
             OrderItemStatus status
     );
-
 }

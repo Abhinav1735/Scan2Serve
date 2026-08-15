@@ -21,23 +21,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Service
 @Transactional
 public class OrderService {
 
-
     @Autowired
     private OrderRepository orderRepository;
 
-
     @Autowired
     private OrderItemRepository orderItemRepository;
-
 
     @Autowired
     private CartRepository cartRepository;
@@ -47,46 +44,39 @@ public class OrderService {
     // CUSTOMER - PLACE ORDER
     // =========================================================
 
-    public Order placeOrder(
-            OrderRequest request
-    ) {
+    public Order placeOrder(OrderRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException(
+                    "Order Request is required"
+            );
+        }
 
         Integer tableNumber =
                 request.getTableNumber();
 
-
-        // =====================================================
-        // GET CART
-        // =====================================================
+        if (tableNumber == null) {
+            throw new RuntimeException(
+                    "Table Number is required"
+            );
+        }
 
         List<Cart> cartItems =
                 cartRepository.findByTableNumber(
                         tableNumber
                 );
 
-
-        // =====================================================
-        // CHECK CART
-        // =====================================================
-
         if (cartItems.isEmpty()) {
-
             throw new RuntimeException(
                     "Cart is Empty"
             );
         }
-
-
-        // =====================================================
-        // FIND EXISTING ACTIVE ORDER
-        // =====================================================
 
         List<OrderStatus> closedStatuses =
                 List.of(
                         OrderStatus.PAID,
                         OrderStatus.CANCELLED
                 );
-
 
         Order order =
                 orderRepository
@@ -96,36 +86,25 @@ public class OrderService {
                         )
                         .orElse(null);
 
-
-        // =====================================================
-        // CREATE NEW ORDER IF NO ACTIVE ORDER EXISTS
-        // =====================================================
-
         if (order == null) {
 
-            order =
-                    new Order();
-
+            order = new Order();
 
             order.setTableNumber(
                     tableNumber
             );
 
-
             order.setStatus(
                     OrderStatus.PENDING
             );
-
 
             order.setOrderTime(
                     LocalDateTime.now()
             );
 
-
             order.setTotalAmount(
                     0.0
             );
-
 
             order =
                     orderRepository.save(
@@ -133,135 +112,73 @@ public class OrderService {
                     );
         }
 
-
-        // =====================================================
-        // ADD CART ITEMS TO SAME ORDER
-        // =====================================================
-
         for (Cart cart : cartItems) {
 
             OrderItem item =
                     new OrderItem();
 
-
-            // =================================================
-            // ORDER
-            // =================================================
-
             item.setOrder(
                     order
             );
-
-
-            // =================================================
-            // MENU
-            // =================================================
 
             item.setMenu(
                     cart.getMenu()
             );
 
-
-            // =================================================
-            // QUANTITY
-            // =================================================
-
             item.setQuantity(
                     cart.getQuantity()
             );
-
-
-            // =================================================
-            // NEW ITEM STATUS
-            // =================================================
 
             item.setStatus(
                     OrderItemStatus.ORDER_PLACED
             );
 
-
-            // =================================================
-            // PRICE
-            // =================================================
-
             double price =
                     cart.getMenu().getPrice()
-                            * cart.getQuantity();
-
+                            *
+                            cart.getQuantity();
 
             item.setPrice(
                     price
             );
-
-
-            // =================================================
-            // SAVE ITEM
-            // =================================================
 
             orderItemRepository.save(
                     item
             );
         }
 
-
-        // =====================================================
-        // RECALCULATE COMPLETE ORDER TOTAL
-        // =====================================================
-
         List<OrderItem> allItems =
                 orderItemRepository.findByOrder(
                         order
                 );
 
-
-        double total =
-                0.0;
-
+        double total = 0.0;
 
         for (OrderItem item : allItems) {
 
-            if (
-                    item.getPrice() != null
-            ) {
+            if (item.getPrice() != null) {
 
                 total +=
                         item.getPrice();
             }
         }
 
-
-        // =====================================================
-        // UPDATE ORDER TOTAL
-        // =====================================================
-
         order.setTotalAmount(
                 total
         );
-
 
         order =
                 orderRepository.save(
                         order
                 );
 
-
-        // =====================================================
-        // SYNCHRONIZE ORDER STATUS
-        // =====================================================
-
         synchronizeOrderStatus(
                 order
         );
 
-
-        // =====================================================
-        // CLEAR CART
-        // =====================================================
-
         cartRepository.deleteByTableNumber(
                 tableNumber
         );
-
 
         return order;
     }
@@ -275,12 +192,18 @@ public class OrderService {
             Integer tableNumber
     ) {
 
+        if (tableNumber == null) {
+
+            throw new RuntimeException(
+                    "Table Number is required"
+            );
+        }
+
         List<OrderStatus> closedStatuses =
                 List.of(
                         OrderStatus.PAID,
                         OrderStatus.CANCELLED
                 );
-
 
         return orderRepository
                 .findFirstByTableNumberAndStatusNotInOrderByIdDesc(
@@ -312,7 +235,6 @@ public class OrderService {
                                         "Order Not Found"
                                 )
                         );
-
 
         return order.getStatus();
     }
@@ -356,6 +278,13 @@ public class OrderService {
             OrderStatus status
     ) {
 
+        if (status == null) {
+
+            throw new RuntimeException(
+                    "Order Status is required"
+            );
+        }
+
         Order order =
                 orderRepository.findById(
                                 id
@@ -366,41 +295,9 @@ public class OrderService {
                                 )
                         );
 
-
-        // =====================================================
-        // PAID ORDER CANNOT BE REOPENED
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.PAID
-        ) {
-
-            throw new IllegalStateException(
-                    "Paid order cannot be reopened"
-            );
-        }
-
-
-        // =====================================================
-        // CANCELLED ORDER CANNOT BE MODIFIED
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.CANCELLED
-        ) {
-
-            throw new IllegalStateException(
-                    "Cancelled order cannot be modified"
-            );
-        }
-
-
         order.setStatus(
                 status
         );
-
 
         return orderRepository.save(
                 order
@@ -423,14 +320,10 @@ public class OrderService {
 
 
     // =========================================================
-    // KITCHEN - GET ACTIVE KITCHEN ORDERS
+    // KITCHEN - GET ACTIVE ORDERS
     // =========================================================
 
     public List<KitchenOrderResponse> getKitchenOrders() {
-
-        // =====================================================
-        // ONLY ACTIVE ORDERS
-        // =====================================================
 
         List<OrderStatus> kitchenStatuses =
                 List.of(
@@ -439,20 +332,13 @@ public class OrderService {
                         OrderStatus.READY
                 );
 
-
         List<Order> orders =
                 orderRepository.findByStatusIn(
                         kitchenStatuses
                 );
 
-
         List<KitchenOrderResponse> response =
                 new ArrayList<>();
-
-
-        // =====================================================
-        // CONVERT EACH ORDER
-        // =====================================================
 
         for (Order order : orders) {
 
@@ -461,75 +347,47 @@ public class OrderService {
                             order
                     );
 
-
             List<KitchenOrderItemResponse> items =
                     new ArrayList<>();
-
-
-            // =================================================
-            // CONVERT ORDER ITEMS
-            // =================================================
 
             for (OrderItem item : orderItems) {
 
                 KitchenOrderItemResponse itemResponse =
                         new KitchenOrderItemResponse(
-
                                 item.getId(),
-
                                 item.getMenu().getId(),
-
                                 item.getMenu().getName(),
-
                                 item.getQuantity(),
-
                                 item.getPrice(),
-
                                 item.getStatus()
-
                         );
-
 
                 items.add(
                         itemResponse
                 );
             }
 
-
-            // =================================================
-            // CREATE ORDER RESPONSE
-            // =================================================
-
             KitchenOrderResponse orderResponse =
                     new KitchenOrderResponse(
-
                             order.getId(),
-
                             order.getTableNumber(),
-
                             order.getStatus(),
-
                             order.getOrderTime(),
-
                             order.getTotalAmount(),
-
                             items
-
                     );
-
 
             response.add(
                     orderResponse
             );
         }
 
-
         return response;
     }
 
 
     // =========================================================
-    // KITCHEN - UPDATE INDIVIDUAL ITEM STATUS
+    // KITCHEN - UPDATE ITEM STATUS
     // =========================================================
 
     public OrderItem updateItemStatus(
@@ -537,9 +395,12 @@ public class OrderService {
             OrderItemStatus newStatus
     ) {
 
-        // =====================================================
-        // FIND CURRENT ITEM
-        // =====================================================
+        if (newStatus == null) {
+
+            throw new IllegalArgumentException(
+                    "New item status cannot be null"
+            );
+        }
 
         OrderItem currentItem =
                 orderItemRepository.findById(
@@ -551,127 +412,111 @@ public class OrderService {
                                 )
                         );
 
-
-        // =====================================================
-        // GET PARENT ORDER
-        // =====================================================
-
-        Order order =
-                currentItem.getOrder();
-
-
-        // =====================================================
-        // PAID ORDER CANNOT BE MODIFIED
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.PAID
-        ) {
-
-            throw new IllegalStateException(
-                    "Cannot update item status because the order is already paid"
-            );
-        }
-
-
-        // =====================================================
-        // CANCELLED ORDER CANNOT BE MODIFIED
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.CANCELLED
-        ) {
-
-            throw new IllegalStateException(
-                    "Cannot update item status because the order is cancelled"
-            );
-        }
-
-
-        // =====================================================
-        // VALIDATE STATUS TRANSITION
-        // =====================================================
-
         OrderItemStatus currentStatus =
                 currentItem.getStatus();
-
 
         validateStatusTransition(
                 currentStatus,
                 newStatus
         );
 
-
-        // =====================================================
-        // UPDATE STATUS
-        // =====================================================
-
         currentItem.setStatus(
                 newStatus
         );
-
-
-        // =====================================================
-        // IF NOT SERVED
-        // =====================================================
-
-        if (
-                newStatus
-                        != OrderItemStatus.SERVED
-        ) {
-
-            currentItem =
-                    orderItemRepository.save(
-                            currentItem
-                    );
-
-
-            synchronizeOrderStatus(
-                    order
-            );
-
-
-            return currentItem;
-        }
-
-
-        // =====================================================
-        // SAVE CURRENT ITEM AS SERVED
-        // =====================================================
 
         currentItem =
                 orderItemRepository.save(
                         currentItem
                 );
 
+        if (
+                newStatus
+                        ==
+                        OrderItemStatus.SERVED
+        ) {
 
-        // =====================================================
-        // FIND SAME FOOD IN SAME ORDER
-        // =====================================================
+            currentItem =
+                    mergeServedItems(
+                            currentItem
+                    );
+        }
+
+        synchronizeOrderStatus(
+                currentItem.getOrder()
+        );
+
+        return currentItem;
+    }
+
+
+    // =========================================================
+    // KITCHEN - UPDATE ITEM STATUS WITH ORDER ID
+    // =========================================================
+
+    public OrderItem updateItemStatus(
+            Long orderId,
+            Long itemId,
+            OrderItemStatus newStatus
+    ) {
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+        OrderItem item =
+                orderItemRepository
+                        .findByIdAndOrder(
+                                itemId,
+                                order
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Item Not Found for this Order"
+                                )
+                        );
+
+        return updateItemStatus(
+                item.getId(),
+                newStatus
+        );
+    }
+
+
+    // =========================================================
+    // MERGE SERVED ITEMS
+    // =========================================================
+
+    private OrderItem mergeServedItems(
+            OrderItem currentItem
+    ) {
+
+        Long menuId =
+                currentItem
+                        .getMenu()
+                        .getId();
 
         List<OrderItem> sameItems =
                 orderItemRepository
                         .findByOrderAndMenuId(
-                                order,
-                                currentItem.getMenu().getId()
+                                currentItem.getOrder(),
+                                menuId
                         );
-
-
-        // =====================================================
-        // FIND SERVED ITEMS
-        // =====================================================
 
         List<OrderItem> servedItems =
                 new ArrayList<>();
-
 
         for (OrderItem item : sameItems) {
 
             if (
                     item.getStatus()
-                            == OrderItemStatus.SERVED
+                            ==
+                            OrderItemStatus.SERVED
             ) {
 
                 servedItems.add(
@@ -680,101 +525,61 @@ public class OrderService {
             }
         }
 
-
-        // =====================================================
-        // NOTHING TO MERGE
-        // =====================================================
-
-        if (
-                servedItems.size() <= 1
-        ) {
-
-            synchronizeOrderStatus(
-                    order
-            );
-
+        if (servedItems.size() <= 1) {
 
             return currentItem;
         }
 
-
-        // =====================================================
-        // SELECT MERGE TARGET
-        // =====================================================
-
         OrderItem mergeTarget =
                 servedItems.get(0);
-
 
         for (OrderItem item : servedItems) {
 
             if (
                     item.getId()
-                            < mergeTarget.getId()
+                            <
+                            mergeTarget.getId()
             ) {
 
-                mergeTarget =
-                        item;
+                mergeTarget = item;
             }
         }
 
+        int mergedQuantity = 0;
 
-        // =====================================================
-        // MERGE QUANTITY AND PRICE
-        // =====================================================
-
-        int mergedQuantity =
-                0;
-
-
-        double mergedPrice =
-                0.0;
-
+        double mergedPrice = 0.0;
 
         for (OrderItem item : servedItems) {
 
-            mergedQuantity +=
-                    item.getQuantity();
+            if (item.getQuantity() != null) {
 
+                mergedQuantity +=
+                        item.getQuantity();
+            }
 
-            if (
-                    item.getPrice() != null
-            ) {
+            if (item.getPrice() != null) {
 
                 mergedPrice +=
                         item.getPrice();
             }
         }
 
-
         mergeTarget.setQuantity(
                 mergedQuantity
         );
-
 
         mergeTarget.setPrice(
                 mergedPrice
         );
 
-
         mergeTarget.setStatus(
                 OrderItemStatus.SERVED
         );
-
-
-        // =====================================================
-        // SAVE MERGE TARGET
-        // =====================================================
 
         mergeTarget =
                 orderItemRepository.save(
                         mergeTarget
                 );
-
-
-        // =====================================================
-        // DELETE OTHER SERVED DUPLICATES
-        // =====================================================
 
         for (OrderItem item : servedItems) {
 
@@ -791,22 +596,12 @@ public class OrderService {
             }
         }
 
-
-        // =====================================================
-        // SYNCHRONIZE PARENT ORDER
-        // =====================================================
-
-        synchronizeOrderStatus(
-                order
-        );
-
-
         return mergeTarget;
     }
 
 
     // =========================================================
-    // KITCHEN - VALIDATE ITEM STATUS TRANSITION
+    // VALIDATE ITEM STATUS TRANSITION
     // =========================================================
 
     private void validateStatusTransition(
@@ -814,31 +609,19 @@ public class OrderService {
             OrderItemStatus newStatus
     ) {
 
-        // =====================================================
-        // NEW STATUS NULL
-        // =====================================================
-
-        if (
-                newStatus == null
-        ) {
+        if (newStatus == null) {
 
             throw new IllegalArgumentException(
                     "New item status cannot be null"
             );
         }
 
-
-        // =====================================================
-        // CURRENT STATUS NULL
-        // =====================================================
-
-        if (
-                currentStatus == null
-        ) {
+        if (currentStatus == null) {
 
             if (
                     newStatus
-                            != OrderItemStatus.ORDER_PLACED
+                            !=
+                            OrderItemStatus.ORDER_PLACED
             ) {
 
                 throw new IllegalStateException(
@@ -846,87 +629,61 @@ public class OrderService {
                 );
             }
 
+            return;
+        }
+
+        if (currentStatus == newStatus) {
 
             return;
         }
 
-
-        // =====================================================
-        // SAME STATUS
-        // =====================================================
-
         if (
                 currentStatus
-                        == newStatus
-        ) {
-
-            return;
-        }
-
-
-        // =====================================================
-        // ORDER_PLACED -> PREPARING
-        // =====================================================
-
-        if (
-                currentStatus
-                        == OrderItemStatus.ORDER_PLACED
-
+                        ==
+                        OrderItemStatus.ORDER_PLACED
                         &&
-
                         newStatus
-                                == OrderItemStatus.PREPARING
+                                ==
+                                OrderItemStatus.PREPARING
         ) {
 
             return;
         }
-
-
-        // =====================================================
-        // PREPARING -> READY
-        // =====================================================
 
         if (
                 currentStatus
-                        == OrderItemStatus.PREPARING
-
+                        ==
+                        OrderItemStatus.PREPARING
                         &&
-
                         newStatus
-                                == OrderItemStatus.READY
+                                ==
+                                OrderItemStatus.READY
         ) {
 
             return;
         }
-
-
-        // =====================================================
-        // READY -> SERVED
-        // =====================================================
 
         if (
                 currentStatus
-                        == OrderItemStatus.READY
-
+                        ==
+                        OrderItemStatus.READY
                         &&
-
                         newStatus
-                                == OrderItemStatus.SERVED
+                                ==
+                                OrderItemStatus.SERVED
         ) {
 
             return;
         }
-
-
-        // =====================================================
-        // INVALID TRANSITION
-        // =====================================================
 
         throw new IllegalStateException(
                 "Invalid status transition: "
-                        + currentStatus
-                        + " -> "
-                        + newStatus
+                        +
+                        currentStatus
+                        +
+                        " -> "
+                        +
+                        newStatus
         );
     }
 
@@ -934,202 +691,90 @@ public class OrderService {
     // =========================================================
     // SYNCHRONIZE PARENT ORDER STATUS
     // =========================================================
-    //
-    // ORDER_PLACED -> PENDING
-    // PREPARING    -> PREPARING
-    // READY        -> READY
-    // SERVED       -> SERVED
-    //
-    // IMPORTANT:
-    // PAID and CANCELLED orders are never reopened.
-    //
-    // =========================================================
 
     private void synchronizeOrderStatus(
             Order order
     ) {
-
-        // =====================================================
-        // NEVER REOPEN PAID ORDER
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.PAID
-        ) {
-
-            return;
-        }
-
-
-        // =====================================================
-        // NEVER REOPEN CANCELLED ORDER
-        // =====================================================
-
-        if (
-                order.getStatus()
-                        == OrderStatus.CANCELLED
-        ) {
-
-            return;
-        }
-
-
-        // =====================================================
-        // GET ALL ITEMS
-        // =====================================================
 
         List<OrderItem> items =
                 orderItemRepository.findByOrder(
                         order
                 );
 
-
-        // =====================================================
-        // SAFETY CHECK
-        // =====================================================
-
-        if (
-                items.isEmpty()
-        ) {
+        if (items.isEmpty()) {
 
             return;
         }
 
-
-        // =====================================================
-        // STATUS FLAGS
-        // =====================================================
-
-        boolean hasOrderPlaced =
-                false;
-
-
-        boolean hasPreparing =
-                false;
-
-
-        boolean hasReady =
-                false;
-
-
-        boolean hasServed =
-                false;
-
-
-        // =====================================================
-        // CHECK ALL ITEMS
-        // =====================================================
+        boolean hasOrderPlaced = false;
+        boolean hasPreparing = false;
+        boolean hasReady = false;
+        boolean hasServed = false;
 
         for (OrderItem item : items) {
 
             OrderItemStatus status =
                     item.getStatus();
 
+            if (status == null) {
 
-            // =================================================
-            // NULL STATUS
-            // =================================================
-
-            if (
-                    status == null
-            ) {
-
-                hasOrderPlaced =
-                        true;
+                hasOrderPlaced = true;
 
                 continue;
             }
 
-
-            // =================================================
-            // ORDER PLACED
-            // =================================================
-
             if (
                     status
-                            == OrderItemStatus.ORDER_PLACED
+                            ==
+                            OrderItemStatus.ORDER_PLACED
             ) {
 
-                hasOrderPlaced =
-                        true;
-            }
+                hasOrderPlaced = true;
 
-
-            // =================================================
-            // PREPARING
-            // =================================================
-
-            else if (
+            } else if (
                     status
-                            == OrderItemStatus.PREPARING
+                            ==
+                            OrderItemStatus.PREPARING
             ) {
 
-                hasPreparing =
-                        true;
-            }
+                hasPreparing = true;
 
-
-            // =================================================
-            // READY
-            // =================================================
-
-            else if (
+            } else if (
                     status
-                            == OrderItemStatus.READY
+                            ==
+                            OrderItemStatus.READY
             ) {
 
-                hasReady =
-                        true;
-            }
+                hasReady = true;
 
-
-            // =================================================
-            // SERVED
-            // =================================================
-
-            else if (
+            } else if (
                     status
-                            == OrderItemStatus.SERVED
+                            ==
+                            OrderItemStatus.SERVED
             ) {
 
-                hasServed =
-                        true;
+                hasServed = true;
             }
         }
 
-
-        // =====================================================
-        // CALCULATE NEW ORDER STATUS
-        // =====================================================
-
         OrderStatus newOrderStatus;
 
-
-        if (
-                hasOrderPlaced
-        ) {
+        if (hasOrderPlaced) {
 
             newOrderStatus =
                     OrderStatus.PENDING;
 
-        } else if (
-                hasPreparing
-        ) {
+        } else if (hasPreparing) {
 
             newOrderStatus =
                     OrderStatus.PREPARING;
 
-        } else if (
-                hasReady
-        ) {
+        } else if (hasReady) {
 
             newOrderStatus =
                     OrderStatus.READY;
 
-        } else if (
-                hasServed
-        ) {
+        } else if (hasServed) {
 
             newOrderStatus =
                     OrderStatus.SERVED;
@@ -1140,20 +785,15 @@ public class OrderService {
                     OrderStatus.PENDING;
         }
 
-
-        // =====================================================
-        // UPDATE ORDER ONLY IF REQUIRED
-        // =====================================================
-
         if (
                 order.getStatus()
-                        != newOrderStatus
+                        !=
+                        newOrderStatus
         ) {
 
             order.setStatus(
                     newOrderStatus
             );
-
 
             orderRepository.save(
                     order
@@ -1163,33 +803,30 @@ public class OrderService {
 
 
     // =========================================================
-    // BILL GENERATION
-    // =========================================================
-    //
-    // ALL ITEMS ARE DISPLAYED.
-    //
-    // ONLY:
-    //
-    // READY
-    // SERVED
-    //
-    // ARE INCLUDED IN SUBTOTAL.
-    //
-    // PREPARING + ORDER_PLACED:
-    //
-    // visible = YES
-    // status = YES
-    // amount included = NO
-    //
+    // BILL DESK - GET ACTIVE ORDERS
     // =========================================================
 
-    public BillResponse generateBill(
+    public List<Order> getBillDeskOrders() {
+
+        List<OrderStatus> closedStatuses =
+                List.of(
+                        OrderStatus.PAID,
+                        OrderStatus.CANCELLED
+                );
+
+        return orderRepository.findByStatusNotIn(
+                closedStatuses
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - MARK ORDER AS PAID
+    // =========================================================
+
+    public Order markOrderAsPaid(
             Long orderId
     ) {
-
-        // =====================================================
-        // FIND ORDER
-        // =====================================================
 
         Order order =
                 orderRepository.findById(
@@ -1201,251 +838,95 @@ public class OrderService {
                                 )
                         );
 
+        if (
+                order.getStatus()
+                        ==
+                        OrderStatus.PAID
+        ) {
 
-        // =====================================================
-        // FIND ORDER ITEMS
-        // =====================================================
-
-        List<OrderItem> orderItems =
-                orderItemRepository.findByOrder(
-                        order
-                );
-
-
-        List<BillItemResponse> items =
-                new ArrayList<>();
-
-
-        double subtotal =
-                0.0;
-
-
-        // =====================================================
-        // CREATE BILL ITEMS
-        // =====================================================
-
-        for (OrderItem item : orderItems) {
-
-            // =================================================
-            // SAFETY CHECK
-            // =================================================
-
-            if (
-                    item.getQuantity() == null
-                            ||
-                            item.getQuantity() <= 0
-            ) {
-
-                continue;
-            }
-
-
-            if (
-                    item.getPrice() == null
-            ) {
-
-                continue;
-            }
-
-
-            // =================================================
-            // UNIT PRICE
-            // =================================================
-
-            double unitPrice =
-                    item.getPrice()
-                            / item.getQuantity();
-
-
-            // =================================================
-            // ITEM STATUS
-            // =================================================
-
-            String itemStatus;
-
-
-            if (
-                    item.getStatus() == null
-            ) {
-
-                itemStatus =
-                        OrderItemStatus
-                                .ORDER_PLACED
-                                .name();
-
-            } else {
-
-                itemStatus =
-                        item.getStatus()
-                                .name();
-            }
-
-
-            // =================================================
-            // ADD ITEM TO BILL RESPONSE
-            // =================================================
-
-            items.add(
-
-                    new BillItemResponse(
-
-                            item.getMenu()
-                                    .getName(),
-
-                            item.getQuantity(),
-
-                            unitPrice,
-
-                            item.getPrice(),
-
-                            itemStatus
-
-                    )
+            throw new RuntimeException(
+                    "Order is already PAID"
             );
-
-
-            // =================================================
-            // BILLING RULE
-            // =================================================
-            //
-            // ONLY READY + SERVED ARE BILLABLE.
-            //
-            // =================================================
-
-            if (
-                    item.getStatus()
-                            == OrderItemStatus.READY
-
-                            ||
-
-                            item.getStatus()
-                                    == OrderItemStatus.SERVED
-            ) {
-
-                subtotal +=
-                        item.getPrice();
-            }
         }
 
+        if (
+                order.getStatus()
+                        ==
+                        OrderStatus.CANCELLED
+        ) {
 
-        // =====================================================
-        // GST
-        // =====================================================
+            throw new RuntimeException(
+                    "Cancelled order cannot be marked as PAID"
+            );
+        }
 
-        double gst =
-                subtotal * 0.05;
-
-
-        // =====================================================
-        // GRAND TOTAL
-        // =====================================================
-
-        double grandTotal =
-                subtotal + gst;
-
-
-        // =====================================================
-        // BILL RESPONSE
-        // =====================================================
-
-        BillResponse bill =
-                new BillResponse();
-
-
-        bill.setOrderId(
-                order.getId()
+        order.setStatus(
+                OrderStatus.PAID
         );
 
-
-        bill.setTableNumber(
-                order.getTableNumber()
+        return orderRepository.save(
+                order
         );
-
-
-        bill.setItems(
-                items
-        );
-
-
-        bill.setSubtotal(
-                subtotal
-        );
-
-
-        bill.setGst(
-                gst
-        );
-
-
-        bill.setGrandTotal(
-                grandTotal
-        );
-
-
-        return bill;
     }
 
 
     // =========================================================
-    // BILL DESK - SEARCH BILL BY ORDER ID
+    // BILL DESK - SEARCH BY ORDER ID
     // =========================================================
 
     public Order searchBillByOrderId(
             Long orderId
     ) {
 
-        return orderRepository
-                .findById(
-                        orderId
-                )
-                .filter(
-                        order ->
-                                order.getStatus()
-                                        == OrderStatus.PAID
-                )
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Paid Bill Not Found for Order ID: "
-                                        + orderId
+        Order order =
+                orderRepository.findById(
+                                orderId
                         )
-                );
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Bill Not Found"
+                                )
+                        );
+
+        if (
+                order.getStatus()
+                        !=
+                        OrderStatus.PAID
+        ) {
+
+            throw new RuntimeException(
+                    "Paid Bill Not Found"
+            );
+        }
+
+        return order;
     }
 
 
     // =========================================================
-    // BILL DESK - SEARCH BILLS BY TABLE NUMBER
+    // BILL DESK - SEARCH BY TABLE NUMBER
     // =========================================================
 
     public List<Order> searchBillsByTableNumber(
             Integer tableNumber
     ) {
 
-        if (
-                tableNumber == null
-        ) {
+        if (tableNumber == null) {
 
             throw new IllegalArgumentException(
-                    "Table number is required"
+                    "Table Number is required"
             );
         }
 
-
         return orderRepository
-                .findAll()
+                .findByStatus(
+                        OrderStatus.PAID
+                )
                 .stream()
                 .filter(
                         order ->
-
-                                order.getStatus()
-                                        == OrderStatus.PAID
-
+                                order.getTableNumber() != null
                                         &&
-
-                                        order.getTableNumber()
-                                                != null
-
-                                        &&
-
                                         order.getTableNumber()
                                                 .equals(
                                                         tableNumber
@@ -1456,17 +937,13 @@ public class OrderService {
 
 
     // =========================================================
-    // BILL DESK - SEARCH BILLS BY DATE
+    // BILL DESK - SEARCH BY DATE
     // =========================================================
 
     public List<Order> searchBillsByDate(
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     ) {
-
-        // =====================================================
-        // VALIDATE DATES
-        // =====================================================
 
         if (
                 startDateTime == null
@@ -1479,37 +956,13 @@ public class OrderService {
             );
         }
 
-
-        if (
-                startDateTime.isAfter(
-                        endDateTime
-                )
-        ) {
-
-            throw new IllegalArgumentException(
-                    "Start date cannot be after end date"
-            );
-        }
-
-
-        // =====================================================
-        // SEARCH PAID ORDERS
-        // =====================================================
-
         return orderRepository
-                .findAll()
+                .findByStatus(
+                        OrderStatus.PAID
+                )
                 .stream()
                 .filter(
                         order -> {
-
-                            if (
-                                    order.getStatus()
-                                            != OrderStatus.PAID
-                            ) {
-
-                                return false;
-                            }
-
 
                             if (
                                     order.getOrderTime()
@@ -1519,15 +972,12 @@ public class OrderService {
                                 return false;
                             }
 
-
                             return
                                     !order.getOrderTime()
                                             .isBefore(
                                                     startDateTime
                                             )
-
                                             &&
-
                                             order.getOrderTime()
                                                     .isBefore(
                                                             endDateTime
@@ -1535,5 +985,505 @@ public class OrderService {
                         }
                 )
                 .toList();
+    }
+
+
+    // =========================================================
+    // BILL DESK - OLD BILLS
+    // =========================================================
+
+    public List<Order> searchOldBills(
+            Long orderId,
+            Integer tableNumber,
+            LocalDate date
+    ) {
+
+        LocalDateTime startDateTime = null;
+
+        LocalDateTime endDateTime = null;
+
+        if (date != null) {
+
+            startDateTime =
+                    date.atStartOfDay();
+
+            endDateTime =
+                    date.plusDays(1)
+                            .atStartOfDay();
+        }
+
+        return orderRepository.searchOldBills(
+                OrderStatus.PAID,
+                orderId,
+                tableNumber,
+                startDateTime,
+                endDateTime
+        );
+    }
+
+
+    // =========================================================
+    // CUSTOMER - GENERATE BILL
+    // =========================================================
+    //
+    // ALL ITEMS ARE SHOWN.
+    //
+    // ORDER_PLACED -> shown, not billable
+    // PREPARING    -> shown, not billable
+    // READY        -> shown, billable
+    // SERVED       -> shown, billable
+    // =========================================================
+
+    public BillResponse generateBill(
+            Long orderId
+    ) {
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+        return buildCustomerBill(
+                order
+        );
+    }
+
+
+    // =========================================================
+    // CUSTOMER - GENERATE BILL WITH TABLE VALIDATION
+    // =========================================================
+
+    public BillResponse generateBill(
+            Long orderId,
+            Integer tableNumber
+    ) {
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+        if (tableNumber == null) {
+
+            throw new RuntimeException(
+                    "Table Number is required"
+            );
+        }
+
+        if (
+                !tableNumber.equals(
+                        order.getTableNumber()
+                )
+        ) {
+
+            throw new RuntimeException(
+                    "You are not authorized to view this bill"
+            );
+        }
+
+        return buildCustomerBill(
+                order
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - GENERATE BILL
+    // =========================================================
+    //
+    // ALL ITEMS ARE SHOWN.
+    //
+    // Only READY + SERVED affect the amount.
+    // =========================================================
+
+    public BillResponse generateBillForBillDesk(
+            Long orderId
+    ) {
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+        return buildBillForBillDesk(
+                order
+        );
+    }
+
+
+    // =========================================================
+    // CUSTOMER BILL BUILDER
+    // =========================================================
+
+    private BillResponse buildCustomerBill(
+            Order order
+    ) {
+
+        List<OrderItem> orderItems =
+                orderItemRepository.findByOrder(
+                        order
+                );
+
+        List<BillItemResponse> items =
+                new ArrayList<>();
+
+        double subtotal = 0.0;
+
+        for (OrderItem item : orderItems) {
+
+            if (
+                    item.getQuantity() == null
+                            ||
+                            item.getQuantity() <= 0
+            ) {
+
+                continue;
+            }
+
+            if (item.getPrice() == null) {
+
+                continue;
+            }
+
+            if (item.getMenu() == null) {
+
+                continue;
+            }
+
+            double unitPrice =
+                    item.getPrice()
+                            /
+                            item.getQuantity();
+
+            BillItemResponse billItem =
+                    new BillItemResponse();
+
+            billItem.setItemName(
+                    item.getMenu().getName()
+            );
+
+            billItem.setQuantity(
+                    item.getQuantity()
+            );
+
+            billItem.setUnitPrice(
+                    unitPrice
+            );
+
+            billItem.setTotalPrice(
+                    item.getPrice()
+            );
+
+            // Preserve the actual kitchen status.
+            if (item.getStatus() != null) {
+
+                billItem.setStatus(
+                        item.getStatus().name()
+                );
+
+            } else {
+
+                billItem.setStatus(
+                        OrderItemStatus.ORDER_PLACED.name()
+                );
+            }
+
+            // ALL items are displayed.
+            items.add(
+                    billItem
+            );
+
+            // Only READY and SERVED are billable.
+            if (
+                    item.getStatus()
+                            ==
+                            OrderItemStatus.READY
+                            ||
+                            item.getStatus()
+                                    ==
+                                    OrderItemStatus.SERVED
+            ) {
+
+                subtotal +=
+                        item.getPrice();
+            }
+        }
+
+        double gst =
+                subtotal * 0.05;
+
+        double grandTotal =
+                subtotal + gst;
+
+        BillResponse bill =
+                new BillResponse();
+
+        bill.setOrderId(
+                order.getId()
+        );
+
+        bill.setTableNumber(
+                order.getTableNumber()
+        );
+
+        bill.setItems(
+                items
+        );
+
+        bill.setSubtotal(
+                subtotal
+        );
+
+        bill.setGst(
+                gst
+        );
+
+        bill.setGrandTotal(
+                grandTotal
+        );
+
+        return bill;
+    }
+
+
+    // =========================================================
+    // BILL DESK BILL BUILDER
+    // =========================================================
+    //
+    // IMPORTANT:
+    //
+    // ALL ITEMS ARE DISPLAYED.
+    //
+    // ORDER_PLACED -> displayed, NOT billable
+    // PREPARING    -> displayed, NOT billable
+    // READY        -> displayed, BILLABLE
+    // SERVED       -> displayed, BILLABLE
+    //
+    // The real status is preserved.
+    // =========================================================
+
+    private BillResponse buildBillForBillDesk(
+            Order order
+    ) {
+
+        List<OrderItem> orderItems =
+                orderItemRepository.findByOrder(
+                        order
+                );
+
+        List<BillItemResponse> items =
+                new ArrayList<>();
+
+        double subtotal = 0.0;
+
+        for (OrderItem item : orderItems) {
+
+            // -------------------------------------------------
+            // VALIDATION
+            // -------------------------------------------------
+
+            if (
+                    item.getQuantity() == null
+                            ||
+                            item.getQuantity() <= 0
+            ) {
+
+                continue;
+            }
+
+            if (item.getPrice() == null) {
+
+                continue;
+            }
+
+            if (item.getMenu() == null) {
+
+                continue;
+            }
+
+            // -------------------------------------------------
+            // UNIT PRICE
+            // -------------------------------------------------
+
+            double unitPrice =
+                    item.getPrice()
+                            /
+                            item.getQuantity();
+
+            // -------------------------------------------------
+            // CREATE BILL ITEM
+            // -------------------------------------------------
+
+            BillItemResponse billItem =
+                    new BillItemResponse();
+
+            billItem.setItemName(
+                    item.getMenu().getName()
+            );
+
+            billItem.setQuantity(
+                    item.getQuantity()
+            );
+
+            billItem.setUnitPrice(
+                    unitPrice
+            );
+
+            billItem.setTotalPrice(
+                    item.getPrice()
+            );
+
+            // -------------------------------------------------
+            // PRESERVE ACTUAL STATUS
+            // -------------------------------------------------
+
+            if (item.getStatus() != null) {
+
+                billItem.setStatus(
+                        item.getStatus().name()
+                );
+
+            } else {
+
+                billItem.setStatus(
+                        OrderItemStatus.ORDER_PLACED.name()
+                );
+            }
+
+            // -------------------------------------------------
+            // ADD EVERY ITEM TO BILL DESK
+            // -------------------------------------------------
+
+            items.add(
+                    billItem
+            );
+
+            // -------------------------------------------------
+            // ONLY READY + SERVED ARE BILLABLE
+            // -------------------------------------------------
+
+            if (
+                    item.getStatus()
+                            ==
+                            OrderItemStatus.READY
+                            ||
+                            item.getStatus()
+                                    ==
+                                    OrderItemStatus.SERVED
+            ) {
+
+                subtotal +=
+                        item.getPrice();
+            }
+        }
+
+        // =====================================================
+        // GST
+        // =====================================================
+
+        double gst =
+                subtotal * 0.05;
+
+        // =====================================================
+        // GRAND TOTAL
+        // =====================================================
+
+        double grandTotal =
+                subtotal + gst;
+
+        // =====================================================
+        // CREATE BILL RESPONSE
+        // =====================================================
+
+        BillResponse bill =
+                new BillResponse();
+
+        bill.setOrderId(
+                order.getId()
+        );
+
+        bill.setTableNumber(
+                order.getTableNumber()
+        );
+
+        bill.setItems(
+                items
+        );
+
+        bill.setSubtotal(
+                subtotal
+        );
+
+        bill.setGst(
+                gst
+        );
+
+        bill.setGrandTotal(
+                grandTotal
+        );
+
+        return bill;
+    }
+
+
+    // =========================================================
+    // KITCHEN - GET ITEMS OF ONE ORDER
+    // =========================================================
+
+    public List<KitchenOrderItemResponse> getOrderItems(
+            Long orderId
+    ) {
+
+        Order order =
+                orderRepository.findById(
+                                orderId
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Order Not Found"
+                                )
+                        );
+
+        List<OrderItem> orderItems =
+                orderItemRepository.findByOrder(
+                        order
+                );
+
+        List<KitchenOrderItemResponse> response =
+                new ArrayList<>();
+
+        for (OrderItem item : orderItems) {
+
+            KitchenOrderItemResponse itemResponse =
+                    new KitchenOrderItemResponse(
+                            item.getId(),
+                            item.getMenu().getId(),
+                            item.getMenu().getName(),
+                            item.getQuantity(),
+                            item.getPrice(),
+                            item.getStatus()
+                    );
+
+            response.add(
+                    itemResponse
+            );
+        }
+
+        return response;
     }
 }

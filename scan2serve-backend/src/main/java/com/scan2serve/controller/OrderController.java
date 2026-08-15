@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 
@@ -69,10 +68,6 @@ public class OrderController {
     }
 
 
-
-
-
-
     // =========================================================
     // CUSTOMER - BILL
     // =========================================================
@@ -82,6 +77,19 @@ public class OrderController {
             @PathVariable Long orderId
     ) {
 
+        /*
+         * CUSTOMER BILL
+         *
+         * This returns ALL order items with their
+         * current kitchen status.
+         *
+         * ORDER_PLACED -> shown
+         * PREPARING    -> shown
+         * READY        -> shown
+         * SERVED       -> shown
+         *
+         * Only READY and SERVED are counted in subtotal.
+         */
         BillResponse bill =
                 orderService.generateBill(
                         orderId
@@ -201,7 +209,7 @@ public class OrderController {
 
 
     // =========================================================
-    // KITCHEN - INDIVIDUAL ITEM STATUS
+    // KITCHEN - UPDATE INDIVIDUAL ITEM STATUS
     // =========================================================
 
     @PutMapping(
@@ -233,6 +241,21 @@ public class OrderController {
 
 
     // =========================================================
+    // BILL DESK - GET ACTIVE ORDERS
+    // =========================================================
+
+    @GetMapping("/bill-desk/orders")
+    public ApiResponse<List<Order>> getBillDeskOrders() {
+
+        return new ApiResponse<>(
+                true,
+                "Active Orders Fetched Successfully",
+                orderService.getBillDeskOrders()
+        );
+    }
+
+
+    // =========================================================
     // BILL DESK - GET BILL
     // =========================================================
 
@@ -243,8 +266,45 @@ public class OrderController {
             @PathVariable Long orderId
     ) {
 
+        /*
+         * BILL DESK BILL
+         *
+         * Only READY and SERVED items are returned.
+         */
         BillResponse bill =
-                orderService.generateBill(
+                orderService.generateBillForBillDesk(
+                        orderId
+                );
+
+
+        return new ApiResponse<>(
+                true,
+                "Bill Found",
+                bill
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - GET BILL BY ORDER ID
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/orders/{orderId}"
+    )
+    public ApiResponse<BillResponse> getBillDeskOrder(
+            @PathVariable Long orderId
+    ) {
+
+        /*
+         * This endpoint is also used by the Bill Desk frontend.
+         *
+         * IMPORTANT:
+         * Do NOT call generateBill() here because that is
+         * the customer bill.
+         */
+        BillResponse bill =
+                orderService.generateBillForBillDesk(
                         orderId
                 );
 
@@ -305,6 +365,65 @@ public class OrderController {
                 true,
                 "Payment Found",
                 payment
+        );
+    }
+
+
+    // =========================================================
+    // BILL DESK - GET OLD BILLS
+    // =========================================================
+
+    @GetMapping(
+            "/bill-desk/old-bills"
+    )
+    public ApiResponse<List<Order>> getOldBills(
+
+            @RequestParam(
+                    required = false
+            )
+            Long orderId,
+
+            @RequestParam(
+                    required = false
+            )
+            Integer tableNumber,
+
+            @RequestParam(
+                    required = false
+            )
+            String date
+
+    ) {
+
+        LocalDate selectedDate =
+                null;
+
+
+        if (
+                date != null
+                        &&
+                        !date.isBlank()
+        ) {
+
+            selectedDate =
+                    LocalDate.parse(
+                            date
+                    );
+        }
+
+
+        List<Order> oldBills =
+                orderService.searchOldBills(
+                        orderId,
+                        tableNumber,
+                        selectedDate
+                );
+
+
+        return new ApiResponse<>(
+                true,
+                "Old Bills Fetched Successfully",
+                oldBills
         );
     }
 
@@ -373,7 +492,8 @@ public class OrderController {
 
 
         LocalDateTime endDateTime =
-                selectedDate.plusDays(1)
+                selectedDate
+                        .plusDays(1)
                         .atStartOfDay();
 
 
