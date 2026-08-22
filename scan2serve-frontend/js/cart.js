@@ -1,60 +1,150 @@
-// ============================
+// =========================================================
+// SCAN2SERVE - CART
+// =========================================================
+
+// =========================================================
 // BACKEND URL
-// ============================
+// =========================================================
 
 const BACKEND_URL = "http://localhost:8080";
 
-// ============================
-// GET TABLE NUMBER
-// ============================
+// =========================================================
+// GET TABLE NUMBER FROM URL
+// =========================================================
 
 const params = new URLSearchParams(window.location.search);
 
 const tableNumber = params.get("table");
 
-// ============================
+// =========================================================
+// HEADER ELEMENTS
+// =========================================================
+
+// New header table element
+const headerTableInfo = document.getElementById("headerTableInfo");
+
+// Keep compatibility with older HTML
+const tableInfo = document.getElementById("tableInfo");
+
+const menuButton = document.getElementById("menuButton");
+
+const headerOrderButton = document.getElementById("headerOrderButton");
+
+// =========================================================
+// CART CONTAINER
+// =========================================================
+
+const cartContainer = document.getElementById("cartContainer");
+
+// =========================================================
 // CURRENT ORDER STORAGE KEY
-// ============================
+// =========================================================
 
 function getCurrentOrderStorageKey() {
   return "scan2serve_current_order_" + tableNumber;
 }
 
-// ============================
+// =========================================================
 // GET CURRENT ORDER ID
-// ============================
+// =========================================================
 
 function getCurrentOrderId() {
   return localStorage.getItem(getCurrentOrderStorageKey());
 }
 
-// ============================
-// DISPLAY TABLE NUMBER
-// ============================
+// =========================================================
+// INITIALIZE PAGE
+// =========================================================
 
 if (!tableNumber) {
-  document.getElementById("tableInfo").textContent = "Table number not found";
+  // New header
+  if (headerTableInfo) {
+    headerTableInfo.textContent = "Table number not found";
+  }
 
-  document.getElementById("cartContainer").innerHTML = `
+  // Old header compatibility
+  if (tableInfo) {
+    tableInfo.textContent = "Table number not found";
+  }
 
-            <p>
-                Invalid table number.
-            </p>
-
-        `;
+  if (cartContainer) {
+    cartContainer.innerHTML = `
+      <p>
+        Invalid table number.
+      </p>
+    `;
+  }
 } else {
-  document.getElementById("tableInfo").textContent = "Table " + tableNumber;
+  // =====================================================
+  // DISPLAY TABLE NUMBER
+  // =====================================================
+
+  const tableText = "Table " + tableNumber;
+
+  // New header
+  if (headerTableInfo) {
+    headerTableInfo.textContent = tableText;
+  }
+
+  // Old header compatibility
+  if (tableInfo) {
+    tableInfo.textContent = tableText;
+  }
+
+  // =====================================================
+  // VIEW MENU BUTTON
+  // =====================================================
+
+  if (menuButton) {
+    menuButton.href = "menu.html?table=" + encodeURIComponent(tableNumber);
+  }
+
+  // =====================================================
+  // VIEW CURRENT ORDER BUTTON
+  // =====================================================
+
+  setupHeaderOrderButton();
+
+  // =====================================================
+  // LOAD CART
+  // =====================================================
 
   loadCart();
 }
 
-// ============================
+// =========================================================
+// SETUP HEADER CURRENT ORDER BUTTON
+// =========================================================
+
+function setupHeaderOrderButton() {
+  if (!headerOrderButton) {
+    return;
+  }
+
+  const currentOrderId = getCurrentOrderId();
+
+  if (currentOrderId) {
+    headerOrderButton.href =
+      "bill.html?orderId=" +
+      encodeURIComponent(currentOrderId) +
+      "&table=" +
+      encodeURIComponent(tableNumber);
+
+    headerOrderButton.style.display = "inline-flex";
+  } else {
+    headerOrderButton.style.display = "none";
+  }
+}
+
+// =========================================================
 // LOAD CART
-// ============================
+// =========================================================
 
 async function loadCart() {
   try {
-    const response = await fetch(BACKEND_URL + "/customer/cart/" + tableNumber);
+    const response = await fetch(
+      BACKEND_URL + "/customer/cart/" + encodeURIComponent(tableNumber),
+    );
 
     const result = await response.json();
 
@@ -66,101 +156,87 @@ async function loadCart() {
   } catch (error) {
     console.error("Cart loading error:", error);
 
-    document.getElementById("cartContainer").innerHTML = `
+    if (cartContainer) {
+      cartContainer.innerHTML = `
 
-                <p>
-                    Unable to load cart.
-                </p>
+        <p>
+          Unable to load cart.
+        </p>
 
-                <p>
-                    ${error.message}
-                </p>
+        <p>
+          ${escapeHtml(error.message)}
+        </p>
 
-                <br>
-
-                <a
-                    href="menu.html?table=${tableNumber}"
-                >
-                    Go to Menu
-                </a>
-
-            `;
+      `;
+    }
   }
 }
 
-// ============================
+// =========================================================
 // DISPLAY CART
-// ============================
+// =========================================================
 
 function displayCart(cartItems) {
-  const container = document.getElementById("cartContainer");
-
-  container.innerHTML = "";
-
-  // ============================
-  // VIEW CURRENT ORDER BUTTON
-  // ============================
-
-  const currentOrderId = getCurrentOrderId();
-
-  if (currentOrderId) {
-    const orderLink = document.createElement("a");
-
-    orderLink.className = "continue-button";
-
-    orderLink.href =
-      "bill.html?orderId=" +
-      encodeURIComponent(currentOrderId) +
-      "&table=" +
-      encodeURIComponent(tableNumber);
-
-    orderLink.textContent = "📋 View Current Order";
-
-    container.appendChild(orderLink);
+  if (!cartContainer) {
+    return;
   }
 
-  // ============================
+  // =====================================================
+  // CLEAR CART BODY
+  // =====================================================
+
+  cartContainer.innerHTML = "";
+
+  // =====================================================
   // EMPTY CART
-  // ============================
+  // =====================================================
 
   if (!cartItems || cartItems.length === 0) {
-    const emptyMessage = document.createElement("p");
+    cartContainer.innerHTML = `
 
-    emptyMessage.textContent = "Your cart is empty.";
+      <div class="empty-cart">
 
-    container.appendChild(emptyMessage);
+        <p>
+          Your cart is empty.
+        </p>
 
-    // ============================
-    // CONTINUE ORDERING
-    // ============================
+      </div>
 
-    const menuLink = document.createElement("a");
-
-    menuLink.className = "continue-button";
-
-    menuLink.href = "menu.html?table=" + tableNumber;
-
-    menuLink.textContent = "Continue Ordering";
-
-    container.appendChild(menuLink);
+    `;
 
     return;
   }
 
-  let grandTotal = 0;
+  // =====================================================
+  // SUBTOTAL
+  // =====================================================
 
-  // ============================
+  let subtotal = 0;
+
+  // =====================================================
   // DISPLAY CART ITEMS
-  // ============================
+  // =====================================================
 
   cartItems.forEach((item) => {
     const price = Number(item.menu.price);
 
     const quantity = Number(item.quantity);
 
+    // =================================================
+    // ITEM TOTAL
+    // =================================================
+
     const itemTotal = price * quantity;
 
-    grandTotal += itemTotal;
+    // =================================================
+    // ADD ITEM TOTAL TO SUBTOTAL
+    // =================================================
+
+    subtotal += itemTotal;
+
+    // =============================================
+    // CREATE CART CARD
+    // =============================================
 
     const card = document.createElement("div");
 
@@ -168,111 +244,176 @@ function displayCart(cartItems) {
 
     card.innerHTML = `
 
-                <h3>
-                    ${item.menu.name}
-                </h3>
+        <h3>
+          ${escapeHtml(item.menu.name)}
+        </h3>
 
 
-                <p>
-                    ${item.menu.description}
-                </p>
+        <p>
+          ${escapeHtml(item.menu.description)}
+        </p>
 
 
-                <p>
-                    Price: ₹${price}
-                </p>
+        <p class="price">
+
+          Price:
+          ₹${formatMoney(price)}
+
+        </p>
 
 
-                <div
-                    class="quantity-control"
-                >
+        <!-- =====================================
+             QUANTITY CONTROL
+        ====================================== -->
 
-                    <button
-                        class="quantity-button"
-                        onclick="decreaseQuantity(
-                            ${item.id},
-                            ${quantity}
-                        )"
-                    >
-                        −
-                    </button>
+        <div
+          class="quantity-control"
+        >
 
-
-                    <span
-                        class="quantity"
-                    >
-                        ${quantity}
-                    </span>
-
-
-                    <button
-                        class="quantity-button"
-                        onclick="increaseQuantity(
-                            ${item.id},
-                            ${quantity}
-                        )"
-                    >
-                        +
-                    </button>
-
-                </div>
+          <button
+            type="button"
+            class="quantity-button"
+            onclick="
+              decreaseQuantity(
+                ${item.id},
+                ${quantity}
+              )
+            "
+          >
+            −
+          </button>
 
 
-                <p class="price">
+          <span
+            class="quantity"
+          >
+            ${quantity}
+          </span>
 
-                    Item Total:
-                    ₹${itemTotal}
 
-                </p>
+          <button
+            type="button"
+            class="quantity-button"
+            onclick="
+              increaseQuantity(
+                ${item.id},
+                ${quantity}
+              )
+            "
+          >
+            +
+          </button>
+
+        </div>
 
 
-                <button
-                    class="remove-button"
-                    onclick="removeFromCart(
-                        ${item.id}
-                    )"
-                >
+        <!-- =====================================
+             ITEM TOTAL
+        ====================================== -->
 
-                    Remove
+        <p class="item-total">
 
-                </button>
+          Item Total:
 
-            `;
+          <strong>
+            ₹${formatMoney(itemTotal)}
+          </strong>
 
-    container.appendChild(card);
+        </p>
+
+
+        <!-- =====================================
+             REMOVE BUTTON
+        ====================================== -->
+
+        <button
+          type="button"
+          class="remove-button"
+          onclick="
+            removeFromCart(
+              ${item.id}
+            )
+          "
+        >
+          Remove
+        </button>
+
+      `;
+
+    cartContainer.appendChild(card);
   });
 
-  // ============================
-  // GRAND TOTAL
-  // ============================
+  // =====================================================
+  // GST CALCULATION
+  // =====================================================
 
-  const totalElement = document.createElement("h2");
+  const gst = subtotal * 0.05;
+
+  // =====================================================
+  // GRAND TOTAL
+  // =====================================================
+
+  const grandTotal = subtotal + gst;
+
+  // =====================================================
+  // TOTALS CARD
+  // =====================================================
+
+  const totalElement = document.createElement("div");
 
   totalElement.className = "cart-total";
 
-  totalElement.textContent = "Grand Total: ₹" + grandTotal;
+  totalElement.innerHTML = `
 
-  container.appendChild(totalElement);
+    <div class="total-row">
 
-  // ============================
-  // CONTINUE ORDERING
-  // ============================
+      <span>
+        Subtotal
+      </span>
 
-  const menuLink = document.createElement("a");
+      <strong>
+        ₹${formatMoney(subtotal)}
+      </strong>
 
-  menuLink.className = "continue-button";
+    </div>
 
-  menuLink.href = "menu.html?table=" + tableNumber;
 
-  menuLink.textContent = "Continue Ordering";
+    <div class="total-row">
 
-  container.appendChild(menuLink);
+      <span>
+        GST (5%)
+      </span>
 
-  // ============================
+      <strong>
+        ₹${formatMoney(gst)}
+      </strong>
+
+    </div>
+
+
+    <div class="total-row grand-total">
+
+      <span>
+        Grand Total
+      </span>
+
+      <strong>
+        ₹${formatMoney(grandTotal)}
+      </strong>
+
+    </div>
+
+  `;
+
+  cartContainer.appendChild(totalElement);
+
+  // =====================================================
   // PLACE ORDER BUTTON
-  // ============================
+  // =====================================================
 
   const orderButton = document.createElement("button");
+
+  orderButton.type = "button";
 
   orderButton.className = "place-order-button";
 
@@ -280,12 +421,12 @@ function displayCart(cartItems) {
 
   orderButton.onclick = placeOrder;
 
-  container.appendChild(orderButton);
+  cartContainer.appendChild(orderButton);
 }
 
-// ============================
+// =========================================================
 // INCREASE QUANTITY
-// ============================
+// =========================================================
 
 async function increaseQuantity(cartId, currentQuantity) {
   const newQuantity = currentQuantity + 1;
@@ -293,9 +434,9 @@ async function increaseQuantity(cartId, currentQuantity) {
   await updateQuantity(cartId, newQuantity);
 }
 
-// ============================
+// =========================================================
 // DECREASE QUANTITY
-// ============================
+// =========================================================
 
 async function decreaseQuantity(cartId, currentQuantity) {
   if (currentQuantity <= 1) {
@@ -309,14 +450,18 @@ async function decreaseQuantity(cartId, currentQuantity) {
   await updateQuantity(cartId, newQuantity);
 }
 
-// ============================
+// =========================================================
 // UPDATE QUANTITY
-// ============================
+// =========================================================
 
 async function updateQuantity(cartId, quantity) {
   try {
     const response = await fetch(
-      BACKEND_URL + "/customer/cart/" + cartId + "?quantity=" + quantity,
+      BACKEND_URL +
+        "/customer/cart/" +
+        encodeURIComponent(cartId) +
+        "?quantity=" +
+        encodeURIComponent(quantity),
 
       {
         method: "PUT",
@@ -333,18 +478,24 @@ async function updateQuantity(cartId, quantity) {
   } catch (error) {
     console.error("Quantity update error:", error);
 
-    alert(error.message);
+    alert(error.message || "Unable to update quantity");
   }
 }
 
-// ============================
+// =========================================================
 // REMOVE CART ITEM
-// ============================
+// =========================================================
 
 async function removeFromCart(cartId) {
+  const confirmation = confirm("Are you sure you want to remove this item?");
+
+  if (!confirmation) {
+    return;
+  }
+
   try {
     const response = await fetch(
-      BACKEND_URL + "/customer/cart/" + cartId,
+      BACKEND_URL + "/customer/cart/" + encodeURIComponent(cartId),
 
       {
         method: "DELETE",
@@ -357,19 +508,17 @@ async function removeFromCart(cartId) {
       throw new Error(result.message || "Unable to remove item");
     }
 
-    alert("Item removed from cart successfully");
-
     loadCart();
   } catch (error) {
     console.error("Remove cart error:", error);
 
-    alert(error.message);
+    alert(error.message || "Unable to remove item");
   }
 }
 
-// ============================
+// =========================================================
 // PLACE ORDER
-// ============================
+// =========================================================
 
 async function placeOrder() {
   const confirmation = confirm("Are you sure you want to place this order?");
@@ -379,21 +528,17 @@ async function placeOrder() {
   }
 
   try {
-    const response = await fetch(
-      BACKEND_URL + "/customer/order",
+    const response = await fetch(BACKEND_URL + "/customer/order", {
+      method: "POST",
 
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          tableNumber: Number(tableNumber),
-        }),
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+
+      body: JSON.stringify({
+        tableNumber: Number(tableNumber),
+      }),
+    });
 
     const result = await response.json();
 
@@ -403,39 +548,68 @@ async function placeOrder() {
 
     console.log("Order Response:", result);
 
-    // ============================
-    // SAVE CURRENT ORDER ID
-    // ============================
+    // =================================================
+    // GET ORDER ID
+    // =================================================
 
-    localStorage.setItem(
-      getCurrentOrderStorageKey(),
+    const orderId = result.data?.id;
 
-      result.data.id,
-    );
+    if (!orderId) {
+      throw new Error("Order was created but Order ID was not returned.");
+    }
 
-    // ============================
-    // DIRECTLY OPEN BILL
-    // ============================
+    // =================================================
+    // SAVE CURRENT ORDER
+    // =================================================
+
+    localStorage.setItem(getCurrentOrderStorageKey(), orderId);
+
+    // =================================================
+    // OPEN BILL
+    // =================================================
 
     window.location.href =
       "bill.html?orderId=" +
-      result.data.id +
+      encodeURIComponent(orderId) +
       "&table=" +
-      tableNumber +
+      encodeURIComponent(tableNumber) +
       "&orderPlaced=true";
   } catch (error) {
     console.error("Place order error:", error);
 
-    alert(error.message);
+    alert(error.message || "Unable to place order");
   }
 }
 
-// ============================
-// RELOAD CART WHEN PAGE SHOWN
-// ============================
+// =========================================================
+// PAGE SHOW
+// =========================================================
 
 window.addEventListener("pageshow", function () {
   if (tableNumber) {
+    setupHeaderOrderButton();
+
     loadCart();
   }
 });
+
+// =========================================================
+// FORMAT MONEY
+// =========================================================
+
+function formatMoney(value) {
+  return Number(value || 0).toFixed(2);
+}
+
+// =========================================================
+// ESCAPE HTML
+// =========================================================
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}

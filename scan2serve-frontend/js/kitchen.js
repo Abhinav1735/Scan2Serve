@@ -8,6 +8,8 @@
 
 const API_BASE_URL = "http://localhost:8080";
 
+let activeKitchenOrders = [];
+
 // =========================================================
 // LOAD KITCHEN ORDERS
 // =========================================================
@@ -56,17 +58,54 @@ async function loadKitchenOrders() {
 
     const orders = result.data || [];
 
+    activeKitchenOrders = orders;
+
+    // =================================================
+    // PRESERVE CURRENT SEARCH
+    // =================================================
+
+    const searchInput = document.getElementById("kitchenSearch");
+
+    const searchValue = searchInput
+      ? searchInput.value.trim().toLowerCase()
+      : "";
+
     // =================================================
     // DISPLAY ORDERS
     // =================================================
 
-    displayKitchenOrders(orders);
+    if (searchValue) {
+      const filteredOrders = activeKitchenOrders.filter((order) => {
+        const orderId = String(order.orderId ?? "").toLowerCase();
+
+        const tableNumber = String(order.tableNumber ?? "").toLowerCase();
+
+        return (
+          orderId.includes(searchValue) || tableNumber.includes(searchValue)
+        );
+      });
+
+      displayKitchenOrders(filteredOrders);
+
+      // ===============================================
+      // UPDATE SEARCH RESULT COUNT
+      // ===============================================
+
+      statusElement.textContent = `${filteredOrders.length} active order(s)`;
+    } else {
+      // ===============================================
+      // NO SEARCH
+      // SHOW ALL ORDERS
+      // ===============================================
+
+      displayKitchenOrders(activeKitchenOrders);
+
+      statusElement.textContent = `${activeKitchenOrders.length} active order(s)`;
+    }
 
     // =================================================
-    // UPDATE HEADER
+    // UPDATE LAST UPDATED
     // =================================================
-
-    statusElement.textContent = `${orders.length} active order(s)`;
 
     document.getElementById("lastUpdated").textContent =
       `Last updated: ${new Date().toLocaleTimeString()}`;
@@ -80,6 +119,54 @@ async function loadKitchenOrders() {
 
     clearKitchenOrders();
   }
+}
+
+// =========================================================
+// SEARCH KITCHEN ORDERS
+// =========================================================
+
+function searchKitchenOrders() {
+  const searchInput = document.getElementById("kitchenSearch");
+
+  const searchValue = searchInput.value.trim().toLowerCase();
+
+  // =====================================================
+  // SHOW ALL ORDERS WHEN SEARCH IS EMPTY
+  // =====================================================
+
+  if (!searchValue) {
+    displayKitchenOrders(activeKitchenOrders);
+
+    document.getElementById("kitchenStatus").textContent =
+      `${activeKitchenOrders.length} active order(s)`;
+
+    return;
+  }
+
+  // =====================================================
+  // FILTER ORDERS
+  // =====================================================
+
+  const filteredOrders = activeKitchenOrders.filter((order) => {
+    const orderId = String(order.orderId ?? "").toLowerCase();
+
+    const tableNumber = String(order.tableNumber ?? "").toLowerCase();
+
+    return orderId.includes(searchValue) || tableNumber.includes(searchValue);
+  });
+
+  // =====================================================
+  // DISPLAY FILTERED ORDERS
+  // =====================================================
+
+  displayKitchenOrders(filteredOrders);
+
+  // =====================================================
+  // UPDATE RESULT COUNT
+  // =====================================================
+
+  document.getElementById("kitchenStatus").textContent =
+    `${filteredOrders.length} active order(s)`;
 }
 
 // =========================================================
@@ -119,16 +206,16 @@ function displayKitchenOrders(orders) {
 
   if (orders.length === 0) {
     pendingOrders.innerHTML = `<p class="kitchen-empty">
-                No new orders
-             </p>`;
+        No new orders
+      </p>`;
 
     preparingOrders.innerHTML = `<p class="kitchen-empty">
-                No orders being prepared
-             </p>`;
+        No orders being prepared
+      </p>`;
 
     readyOrders.innerHTML = `<p class="kitchen-empty">
-                No ready orders
-             </p>`;
+        No ready orders
+      </p>`;
   }
 
   // =====================================================
@@ -139,18 +226,28 @@ function displayKitchenOrders(orders) {
     const orderCard = createOrderCard(order);
 
     // =================================================
-    // PLACE CARD ACCORDING TO ORDER STATUS
+    // NEW / PENDING
     // =================================================
 
     if (order.orderStatus === "PENDING") {
       pendingOrders.appendChild(orderCard);
 
       pendingCount++;
-    } else if (order.orderStatus === "PREPARING") {
+    }
+
+    // =================================================
+    // PREPARING
+    // =================================================
+    else if (order.orderStatus === "PREPARING") {
       preparingOrders.appendChild(orderCard);
 
       preparingCount++;
-    } else if (order.orderStatus === "READY") {
+    }
+
+    // =================================================
+    // READY
+    // =================================================
+    else if (order.orderStatus === "READY") {
       readyOrders.appendChild(orderCard);
 
       readyCount++;
@@ -187,23 +284,25 @@ function createOrderCard(order) {
 
   header.innerHTML = `
 
-        <div>
+    <div>
 
-            <h3>
-                Order #${order.orderId}
-            </h3>
+      <h3>
+        Order #${order.orderId}
+      </h3>
 
-            <p>
-                Table ${order.tableNumber}
-            </p>
+      <p>
+        Table ${order.tableNumber}
+      </p>
 
-        </div>
+    </div>
 
-        <span class="kitchen-order-status">
-            ${formatStatus(order.orderStatus)}
-        </span>
+    <span
+      class="kitchen-order-status"
+    >
+      ${formatStatus(order.orderStatus)}
+    </span>
 
-    `;
+  `;
 
   card.appendChild(header);
 
@@ -231,8 +330,8 @@ function createOrderCard(order) {
 
   if (!order.items || order.items.length === 0) {
     itemsContainer.innerHTML = `<p class="kitchen-empty">
-                No items found
-             </p>`;
+        No items found
+      </p>`;
   } else {
     order.items.forEach((item) => {
       const itemElement = createOrderItem(item);
@@ -265,28 +364,53 @@ function createOrderItem(item) {
 
   information.innerHTML = `
 
-        <h4>
-            ${escapeHtml(item.itemName)}
-        </h4>
+    <h4>
+      ${escapeHtml(item.itemName)}
+    </h4>
 
-        <p>
-            Quantity:
-            <strong>
-                ${item.quantity}
-            </strong>
-        </p>
+    <p>
+      Quantity:
 
-        <small>
-            Item #${item.itemId}
-        </small>
+      <strong>
+        ${item.quantity}
+      </strong>
+    </p>
 
-        <span class="kitchen-item-status">
-            ${formatStatus(item.status)}
-        </span>
+    <small>
+      Item #${item.itemId}
+    </small>
 
-    `;
+  `;
 
   itemCard.appendChild(information);
+
+  // =====================================================
+  // ITEM STATUS COLUMN
+  // =====================================================
+
+  const statusColumn = document.createElement("div");
+
+  statusColumn.className = "kitchen-item-status-column";
+
+  const statusLabel = document.createElement("span");
+
+  statusLabel.className = "kitchen-item-status-label";
+
+  statusLabel.textContent = "Status";
+
+  const status = document.createElement("span");
+
+  status.className = `kitchen-item-status kitchen-status-${String(
+    item.status || "UNKNOWN",
+  ).toLowerCase()}`;
+
+  status.textContent = formatStatus(item.status);
+
+  statusColumn.appendChild(statusLabel);
+
+  statusColumn.appendChild(status);
+
+  itemCard.appendChild(statusColumn);
 
   // =====================================================
   // BUTTONS
@@ -297,7 +421,7 @@ function createOrderItem(item) {
   buttons.className = "kitchen-item-buttons";
 
   // =====================================================
-  // ORDER_PLACED
+  // ORDER PLACED
   // =====================================================
 
   if (item.status === "ORDER_PLACED") {
@@ -347,6 +471,8 @@ function createOrderItem(item) {
 function createStatusButton(text, newStatus, itemId) {
   const button = document.createElement("button");
 
+  button.type = "button";
+
   button.className = "kitchen-action-button";
 
   button.textContent = text;
@@ -376,6 +502,7 @@ async function updateItemStatus(itemId, newStatus, button) {
 
     const response = await fetch(
       `${API_BASE_URL}/kitchen/order-items/${itemId}/status`,
+
       {
         method: "PUT",
 
@@ -414,11 +541,6 @@ async function updateItemStatus(itemId, newStatus, button) {
     // =================================================
     // RELOAD ORDERS
     // =================================================
-    //
-    // We reload from the backend rather than manually
-    // changing the UI because the backend also
-    // recalculates the parent Order status.
-    //
 
     await loadKitchenOrders();
   } catch (error) {
@@ -515,10 +637,6 @@ function clearKitchenOrders() {
 // =========================================================
 // AUTO REFRESH
 // =========================================================
-//
-// Refresh every 5 seconds so new customer orders appear
-// without manually refreshing the browser.
-//
 
 setInterval(loadKitchenOrders, 5000);
 

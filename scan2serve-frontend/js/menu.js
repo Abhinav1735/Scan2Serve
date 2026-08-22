@@ -1,16 +1,20 @@
+// =========================================================
+// SCAN2SERVE - CUSTOMER MENU
+// =========================================================
+
 const BACKEND_URL = "http://localhost:8080";
 
-// ============================
-// Get Table Number From URL
-// ============================
+// =========================================================
+// GET TABLE NUMBER FROM URL
+// =========================================================
 
 const params = new URLSearchParams(window.location.search);
 
 const tableNumber = params.get("table");
 
-// ============================
-// Table Information
-// ============================
+// =========================================================
+// TABLE INFORMATION
+// =========================================================
 
 const tableInfo = document.getElementById("tableInfo");
 
@@ -18,40 +22,46 @@ const cartButton = document.getElementById("cartButton");
 
 const viewOrderButton = document.getElementById("viewOrderButton");
 
+// =========================================================
+// INITIALIZATION
+// =========================================================
+
 if (!tableNumber) {
   tableInfo.textContent = "Table number not found";
 } else {
   tableInfo.textContent = "Table " + tableNumber;
 
-  // ============================
-  // View Cart Button
-  // ============================
+  // =======================================================
+  // VIEW CART BUTTON
+  // =======================================================
 
   if (cartButton) {
-    cartButton.href = "cart.html?table=" + tableNumber;
+    cartButton.href = "cart.html?table=" + encodeURIComponent(tableNumber);
   }
 
-  // ============================
-  // Check Current Order
-  // ============================
+  // =======================================================
+  // CHECK CURRENT ORDER
+  // =======================================================
 
   checkCurrentOrder();
 
-  // ============================
-  // Load Menu
-  // ============================
+  // =======================================================
+  // LOAD MENU
+  // =======================================================
 
   loadMenu();
 }
 
-// ============================
-// Check Current Order
-// ============================
+// =========================================================
+// CHECK CURRENT ORDER
+// =========================================================
 
 async function checkCurrentOrder() {
   try {
     const response = await fetch(
-      BACKEND_URL + "/customer/order/current/" + tableNumber,
+      BACKEND_URL +
+        "/customer/order/current/" +
+        encodeURIComponent(tableNumber),
     );
 
     const result = await response.json();
@@ -61,12 +71,21 @@ async function checkCurrentOrder() {
     if (response.ok && result.success && result.data) {
       const order = result.data;
 
-      // Show View Current Order
+      // =================================================
+      // SHOW CURRENT ORDER BUTTON
+      // =================================================
 
-      viewOrderButton.style.display = "inline-block";
+      viewOrderButton.style.display = "inline-flex";
+
+      // =================================================
+      // CURRENT ORDER / BILL PAGE
+      // =================================================
 
       viewOrderButton.href =
-        "bill.html?orderId=" + order.id + "&table=" + tableNumber;
+        "bill.html?orderId=" +
+        encodeURIComponent(order.id) +
+        "&table=" +
+        encodeURIComponent(tableNumber);
     } else {
       viewOrderButton.style.display = "none";
     }
@@ -77,9 +96,9 @@ async function checkCurrentOrder() {
   }
 }
 
-// ============================
-// Load Customer Menu
-// ============================
+// =========================================================
+// LOAD CUSTOMER MENU
+// =========================================================
 
 async function loadMenu() {
   try {
@@ -96,119 +115,193 @@ async function loadMenu() {
     console.error("Menu loading error:", error);
 
     document.getElementById("menuContainer").innerHTML = `
-
-                <p>
-                    Unable to load menu
-                </p>
-
-            `;
+      <p id="error">
+        Unable to load menu
+      </p>
+    `;
   }
 }
 
-// ============================
-// Display Menu
-// ============================
+// =========================================================
+// DISPLAY MENU
+// =========================================================
 
 function displayMenu(menuData) {
   const container = document.getElementById("menuContainer");
 
   container.innerHTML = "";
 
+  // =======================================================
+  // EMPTY MENU
+  // =======================================================
+
   if (!menuData || menuData.length === 0) {
     container.innerHTML = `
-
-            <p>
-                No menu items available.
-            </p>
-
-        `;
+      <p id="error">
+        No menu items available.
+      </p>
+    `;
 
     return;
   }
+
+  // =======================================================
+  // CATEGORIES
+  // =======================================================
 
   menuData.forEach((category) => {
     const categorySection = document.createElement("section");
 
     categorySection.className = "menu-category";
 
+    // ===================================================
+    // CATEGORY TITLE
+    // ===================================================
+
     const heading = document.createElement("h2");
 
     heading.textContent = category.category;
 
+    // ===================================================
+    // ITEMS CONTAINER
+    // ===================================================
+
     const itemsContainer = document.createElement("div");
 
     itemsContainer.className = "menu-items";
+
+    // ===================================================
+    // MENU ITEMS
+    // ===================================================
 
     category.items.forEach((menu) => {
       const card = document.createElement("div");
 
       card.className = "menu-card";
 
+      // ===============================================
+      // IMAGE URL
+      // ===============================================
+
+      const imageUrl = menu.imageUrl || menu.image || menu.foodImage || "";
+
+      // ===============================================
+      // IMAGE HTML
+      // ===============================================
+
+      let imageHtml = "";
+
+      if (imageUrl) {
+        imageHtml = `
+              <div class="menu-food-image">
+
+                <img
+                  src="${escapeHtml(imageUrl)}"
+                  alt="${escapeHtml(menu.name)}"
+                  onerror="
+                    this.style.display='none';
+                    this.parentElement.classList.add(
+                      'image-placeholder'
+                    );
+                  "
+                />
+
+                <div class="menu-image-placeholder">
+                  🍽️
+                </div>
+
+              </div>
+            `;
+      } else {
+        imageHtml = `
+              <div class="menu-food-image image-placeholder">
+
+                <div class="menu-image-placeholder">
+                  🍽️
+                </div>
+
+              </div>
+            `;
+      }
+
+      // ===============================================
+      // CARD
+      // ===============================================
+
       card.innerHTML = `
+            ${imageHtml}
 
-                        <h3>
-                            ${menu.name}
-                        </h3>
+            <div class="menu-card-content">
 
-                        <p>
-                            ${menu.description}
-                        </p>
+              <h3>
+                ${escapeHtml(menu.name)}
+              </h3>
 
-                        <p class="price">
-                            ₹${menu.price}
-                        </p>
+              <p class="menu-description">
+                ${escapeHtml(menu.description)}
+              </p>
 
+              <p class="price">
+                ₹${menu.price}
+              </p>
 
-                        <div
-                            class="menu-quantity-control"
-                        >
+              <div class="menu-card-actions">
 
-                            <button
-                                class="menu-quantity-button"
-                                onclick="
-                                    decreaseMenuQuantity(
-                                        ${menu.id}
-                                    )
-                                "
-                            >
-                                −
-                            </button>
+                <div
+                  class="menu-quantity-control"
+                >
 
+                  <button
+                    type="button"
+                    class="menu-quantity-button"
+                    onclick="
+                      decreaseMenuQuantity(
+                        ${menu.id}
+                      )
+                    "
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
 
-                            <span
-                                id="quantity-${menu.id}"
-                                class="menu-quantity"
-                            >
-                                1
-                            </span>
+                  <span
+                    id="quantity-${menu.id}"
+                    class="menu-quantity"
+                  >
+                    1
+                  </span>
 
+                  <button
+                    type="button"
+                    class="menu-quantity-button"
+                    onclick="
+                      increaseMenuQuantity(
+                        ${menu.id}
+                      )
+                    "
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
 
-                            <button
-                                class="menu-quantity-button"
-                                onclick="
-                                    increaseMenuQuantity(
-                                        ${menu.id}
-                                    )
-                                "
-                            >
-                                +
-                            </button>
+                </div>
 
-                        </div>
+                <button
+                  type="button"
+                  class="add-button"
+                  onclick="
+                    addToCart(
+                      ${menu.id}
+                    )
+                  "
+                >
+                  🛒 Add to Cart
+                </button>
 
+              </div>
 
-                        <button
-                            class="add-button"
-                            onclick="
-                                addToCart(
-                                    ${menu.id}
-                                )
-                            "
-                        >
-                            Add to Cart
-                        </button>
-
-                    `;
+            </div>
+          `;
 
       itemsContainer.appendChild(card);
     });
@@ -221,9 +314,9 @@ function displayMenu(menuData) {
   });
 }
 
-// ============================
-// Get Menu Quantity
-// ============================
+// =========================================================
+// GET MENU QUANTITY
+// =========================================================
 
 function getMenuQuantity(menuId) {
   const quantityElement = document.getElementById("quantity-" + menuId);
@@ -235,9 +328,9 @@ function getMenuQuantity(menuId) {
   return Number(quantityElement.textContent);
 }
 
-// ============================
-// Increase Menu Quantity
-// ============================
+// =========================================================
+// INCREASE MENU QUANTITY
+// =========================================================
 
 function increaseMenuQuantity(menuId) {
   const quantityElement = document.getElementById("quantity-" + menuId);
@@ -253,9 +346,9 @@ function increaseMenuQuantity(menuId) {
   quantityElement.textContent = quantity;
 }
 
-// ============================
-// Decrease Menu Quantity
-// ============================
+// =========================================================
+// DECREASE MENU QUANTITY
+// =========================================================
 
 function decreaseMenuQuantity(menuId) {
   const quantityElement = document.getElementById("quantity-" + menuId);
@@ -275,9 +368,9 @@ function decreaseMenuQuantity(menuId) {
   quantityElement.textContent = quantity;
 }
 
-// ============================
-// Add To Cart
-// ============================
+// =========================================================
+// ADD TO CART
+// =========================================================
 
 async function addToCart(menuId) {
   try {
@@ -301,22 +394,52 @@ async function addToCart(menuId) {
 
     const result = await response.json();
 
+    // ===================================================
+    // CHECK RESPONSE
+    // ===================================================
+
     if (!response.ok || !result.success) {
       throw new Error(result.message || "Unable to add item to cart");
     }
 
+    // ===================================================
+    // SUCCESS
+    // ===================================================
+
     alert(quantity + " item(s) added to cart successfully");
 
     console.log("Cart Response:", result);
+
+    // ===================================================
+    // RESET QUANTITY
+    // ===================================================
 
     const quantityElement = document.getElementById("quantity-" + menuId);
 
     if (quantityElement) {
       quantityElement.textContent = "1";
     }
+
+    // ===================================================
+    // CHECK CURRENT ORDER AGAIN
+    // ===================================================
+
+    checkCurrentOrder();
   } catch (error) {
     console.error("Add to cart error:", error);
 
     alert(error.message);
   }
+}
+
+// =========================================================
+// ESCAPE HTML
+// =========================================================
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+
+  div.textContent = value ?? "";
+
+  return div.innerHTML;
 }

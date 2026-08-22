@@ -1,0 +1,899 @@
+/* =========================================================
+   SCAN2SERVE MENU
+   RESTAURANT RESPONSIVE THEME
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+body {
+  margin: 0;
+
+  min-height: 100vh;
+
+  overflow-x: hidden;
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(197, 139, 69, 0.08),
+      transparent 35%
+    ),
+    linear-gradient(135deg, #fffaf3 0%, #f8efe3 50%, #f4e8d8 100%);
+
+  color: #2d241e;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.header {
+  position: relative;
+
+  width: 100%;
+
+  min-height: 145px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px 25px;
+
+  background: linear-gradient(135deg, #3a2418, #4a2d1c);
+
+  color: #fffaf3;
+
+  border-bottom: 3px solid #c58b45;
+
+  box-shadow: 0 4px 18px rgba(80, 48, 25, 0.18);
+}
+
+/* =========================================================
+   RESTAURANT NAME
+   ========================================================= */
+
+.menu-title {
+  text-align: center;
+
+  padding: 0 270px;
+}
+
+.menu-title h1 {
+  margin: 0;
+
+  color: #fffaf3;
+
+  font-size: clamp(32px, 3.4vw, 44px);
+
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   TABLE CARD
+   ========================================================= */
+
+.table-card {
+  position: absolute;
+
+  left: 35px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  min-width: 72px;
+
+  height: 40px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 10px;
+
+  background: rgba(255, 250, 243, 0.07);
+
+  border: 1px solid #c58b45;
+
+  border-radius: 8px;
+
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.14);
+
+  backdrop-filter: blur(4px);
+}
+
+/* =========================================================
+   TABLE NUMBER
+   ========================================================= */
+
+#tableInfo {
+  margin: 0;
+
+  color: #fffaf3;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   HEADER BUTTONS
+   ========================================================= */
+
+.menu-header-buttons {
+  position: absolute;
+
+  right: 35px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+/* =========================================================
+   HEADER ACTION BUTTON
+   ========================================================= */
+
+.header-action-button {
+  width: 132px;
+
+  min-width: 132px;
+
+  height: 42px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 0 10px;
+
+  border-radius: 8px;
+
+  text-decoration: none;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* =========================================================
+   BUTTON ICON
+   ========================================================= */
+
+.button-icon {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 14px;
+
+  line-height: 1;
+}
+
+/* =========================================================
+   VIEW CART
+   ========================================================= */
+
+.cart-action-button {
+  background: linear-gradient(135deg, #c8792d, #b46524);
+
+  color: #ffffff;
+
+  border: 1px solid #d38a43;
+
+  box-shadow: 0 3px 9px rgba(168, 92, 32, 0.22);
+}
+
+.cart-action-button:hover {
+  background: linear-gradient(135deg, #d4893b, #b96925);
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 6px 13px rgba(168, 92, 32, 0.28);
+}
+
+/* =========================================================
+   VIEW CURRENT ORDER
+   ========================================================= */
+
+.order-action-button {
+  width: 150px;
+
+  min-width: 150px;
+
+  background: rgba(255, 250, 243, 0.07);
+
+  color: #fffaf3;
+
+  border: 1px solid #c58b45;
+
+  box-shadow: none;
+}
+
+.order-action-button:hover {
+  background: rgba(197, 139, 69, 0.18);
+
+  border-color: #d49a55;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.16);
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+main {
+  width: 100%;
+
+  max-width: 1200px;
+
+  margin: 28px auto;
+
+  padding: 0 20px;
+}
+
+/* =========================================================
+   MENU CATEGORY
+   ========================================================= */
+
+.menu-category {
+  width: 100%;
+
+  margin-bottom: 30px;
+
+  padding: 22px;
+
+  background: rgba(255, 250, 243, 0.96);
+
+  border: 1px solid #ead8c2;
+
+  border-radius: 14px;
+
+  box-shadow: 0 4px 16px rgba(80, 48, 25, 0.08);
+}
+
+/* =========================================================
+   CATEGORY TITLE
+   ========================================================= */
+
+.menu-category h2 {
+  margin: 0 0 18px;
+
+  padding-bottom: 12px;
+
+  color: #3a2418;
+
+  font-size: 21px;
+
+  border-bottom: 1px solid #ead8c2;
+}
+
+/* =========================================================
+   MENU GRID
+   ========================================================= */
+
+.menu-items {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 20px;
+
+  align-items: stretch;
+}
+
+/* =========================================================
+   MENU CARD
+   ========================================================= */
+
+.menu-card {
+  width: 100%;
+
+  height: 510px;
+
+  min-height: 510px;
+
+  max-height: 510px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #eadfce;
+
+  border-radius: 13px;
+
+  box-shadow: 0 4px 12px rgba(80, 48, 25, 0.08);
+
+  overflow: hidden;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-3px);
+
+  border-color: #c58b45;
+
+  box-shadow: 0 8px 20px rgba(80, 48, 25, 0.14);
+}
+
+/* =========================================================
+   FOOD IMAGE
+   ========================================================= */
+
+.menu-food-image {
+  position: relative;
+
+  width: 100%;
+
+  height: 190px;
+
+  min-height: 190px;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #f2e1cc, #ead1b4);
+}
+
+.menu-food-image img {
+  width: 100%;
+
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  transition: transform 0.35s ease;
+}
+
+.menu-card:hover .menu-food-image img {
+  transform: scale(1.04);
+}
+
+/* =========================================================
+   IMAGE PLACEHOLDER
+   ========================================================= */
+
+.menu-image-placeholder {
+  position: absolute;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #8b6b50;
+
+  font-size: 52px;
+
+  background: linear-gradient(135deg, #f5e8d8, #ead5bd);
+}
+
+.menu-food-image:not(.image-placeholder) .menu-image-placeholder {
+  display: none;
+}
+
+/* =========================================================
+   CARD CONTENT
+   ========================================================= */
+
+.menu-card-content {
+  display: flex;
+
+  flex-direction: column;
+
+  flex: 1;
+
+  padding: 20px;
+}
+
+/* =========================================================
+   ITEM NAME
+   ========================================================= */
+
+.menu-card h3 {
+  height: 55px;
+
+  min-height: 55px;
+
+  margin: 0 0 10px;
+
+  color: #3a2418;
+
+  font-size: 18px;
+
+  line-height: 1.4;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   DESCRIPTION
+   ========================================================= */
+
+.menu-description {
+  height: 62px;
+
+  min-height: 62px;
+
+  margin: 0 0 10px;
+
+  color: #75675b;
+
+  font-size: 14px;
+
+  line-height: 1.55;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   PRICE
+   ========================================================= */
+
+.menu-card .price {
+  height: 30px;
+
+  min-height: 30px;
+
+  margin: 0;
+
+  color: #a85c20;
+
+  font-size: 18px;
+
+  font-weight: 700;
+}
+
+/* =========================================================
+   CARD ACTIONS
+   ========================================================= */
+
+.menu-card-actions {
+  margin-top: auto;
+}
+
+/* =========================================================
+   QUANTITY CONTROL
+   ========================================================= */
+
+.menu-quantity-control {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 18px;
+
+  height: 50px;
+
+  min-height: 50px;
+
+  margin-bottom: 15px;
+}
+
+.menu-quantity-button {
+  width: 42px;
+
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid #5a3926;
+
+  border-radius: 8px;
+
+  background: #3a2418;
+
+  color: #ffffff;
+
+  font-size: 20px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.menu-quantity-button:hover {
+  background: #563522;
+
+  box-shadow: 0 4px 9px rgba(58, 36, 24, 0.18);
+}
+
+.menu-quantity-button:active {
+  transform: scale(0.94);
+}
+
+.menu-quantity {
+  min-width: 30px;
+
+  color: #3a2418;
+
+  text-align: center;
+
+  font-size: 18px;
+
+  font-weight: 700;
+}
+
+/* =========================================================
+   ADD TO CART
+   ========================================================= */
+
+.add-button {
+  width: 100%;
+
+  height: 48px;
+
+  min-height: 48px;
+
+  padding: 0 15px;
+
+  border: 1px solid #914d19;
+
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  background: linear-gradient(135deg, #b96925, #c8792d);
+
+  color: #ffffff;
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  box-shadow: 0 5px 12px rgba(168, 92, 32, 0.2);
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-button:hover {
+  background: linear-gradient(135deg, #a85c20, #b96925);
+
+  box-shadow: 0 7px 16px rgba(168, 92, 32, 0.28);
+}
+
+.add-button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================================
+   LOADING / ERROR
+   ========================================================= */
+
+#loading,
+#error {
+  color: #75675b;
+
+  text-align: center;
+
+  padding: 25px;
+}
+
+/* =========================================================
+   LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .menu-title {
+    padding: 0 210px;
+  }
+
+  .menu-title h1 {
+    font-size: 34px;
+  }
+
+  .table-card {
+    left: 25px;
+
+    min-width: 68px;
+
+    height: 38px;
+  }
+
+  #tableInfo {
+    font-size: 12px;
+  }
+
+  .menu-header-buttons {
+    right: 25px;
+
+    gap: 5px;
+  }
+
+  .header-action-button {
+    width: 110px;
+
+    min-width: 110px;
+
+    height: 38px;
+
+    font-size: 11px;
+  }
+
+  .order-action-button {
+    width: 125px;
+
+    min-width: 125px;
+  }
+
+  .menu-items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
+
+@media (max-width: 850px) {
+  .header {
+    min-height: 135px;
+  }
+
+  .menu-title {
+    padding: 0 160px;
+  }
+
+  .menu-title h1 {
+    font-size: 29px;
+  }
+
+  .table-card {
+    left: 16px;
+
+    min-width: 64px;
+
+    height: 36px;
+  }
+
+  #tableInfo {
+    font-size: 11px;
+  }
+
+  .menu-header-buttons {
+    right: 16px;
+
+    gap: 5px;
+  }
+
+  .header-action-button,
+  .order-action-button {
+    width: 42px;
+
+    min-width: 42px;
+
+    height: 38px;
+
+    padding: 0;
+  }
+
+  .header-action-button .button-text {
+    display: none;
+  }
+
+  .header-action-button .button-icon {
+    font-size: 15px;
+  }
+
+  .menu-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .header {
+    min-height: 85px;
+
+    padding: 12px 10px;
+  }
+
+  .menu-title {
+    padding: 0 80px;
+  }
+
+  .menu-title h1 {
+    font-size: clamp(21px, 6vw, 27px);
+
+    letter-spacing: -0.3px;
+  }
+
+  .table-card {
+    left: 10px;
+
+    min-width: 55px;
+
+    height: 32px;
+
+    padding: 0 7px;
+
+    border-radius: 7px;
+  }
+
+  #tableInfo {
+    font-size: 10px;
+  }
+
+  .menu-header-buttons {
+    right: 10px;
+
+    gap: 4px;
+  }
+
+  .header-action-button,
+  .order-action-button {
+    width: 34px;
+
+    min-width: 34px;
+
+    height: 34px;
+
+    border-radius: 7px;
+  }
+
+  .header-action-button .button-text {
+    display: none;
+  }
+
+  .header-action-button .button-icon {
+    font-size: 14px;
+  }
+
+  main {
+    margin-top: 18px;
+
+    padding: 0 10px;
+  }
+
+  .menu-category {
+    padding: 14px;
+
+    border-radius: 11px;
+  }
+
+  .menu-category h2 {
+    font-size: 19px;
+  }
+
+  .menu-items {
+    grid-template-columns: 1fr;
+
+    gap: 16px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 380px) {
+  .header {
+    min-height: 88px;
+
+    padding: 10px 8px;
+  }
+
+  .menu-title {
+    padding: 0 70px;
+  }
+
+  .menu-title h1 {
+    font-size: 20px;
+  }
+
+  .table-card {
+    left: 8px;
+
+    min-width: 50px;
+
+    height: 29px;
+
+    padding: 0 6px;
+  }
+
+  #tableInfo {
+    font-size: 9px;
+  }
+
+  .menu-header-buttons {
+    right: 8px;
+
+    gap: 4px;
+  }
+
+  .header-action-button,
+  .order-action-button {
+    width: 31px;
+
+    min-width: 31px;
+
+    height: 31px;
+
+    border-radius: 6px;
+  }
+
+  .header-action-button .button-icon {
+    font-size: 13px;
+  }
+
+  main {
+    padding: 0 8px;
+  }
+
+  .menu-category {
+    padding: 12px;
+  }
+}

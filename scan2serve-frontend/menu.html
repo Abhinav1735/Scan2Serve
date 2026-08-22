@@ -8,28 +8,67 @@
     <title>Scan2Serve Menu</title>
 
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/menu.css" />
   </head>
 
   <body>
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
     <header class="header">
-      <h1>Scan2Serve</h1>
+      <!-- TABLE CARD -->
+      <div class="table-card">
+        <span id="tableInfo">Table 1</span>
+      </div>
 
-      <p id="tableInfo">Table</p>
+      <!-- RESTAURANT NAME -->
+      <div class="menu-title">
+        <h1>Scan2Serve</h1>
+      </div>
 
+      <!-- HEADER ACTIONS -->
       <div class="menu-header-buttons">
-        <a id="cartButton" href="#"> View Cart </a>
+        <!-- CART -->
+        <a
+          id="cartButton"
+          href="#"
+          class="header-action-button cart-action-button"
+          aria-label="View Cart"
+          title="View Cart"
+        >
+          <span class="button-icon">🛒</span>
+          <span class="button-text">View Cart</span>
+        </a>
 
-        <a id="viewOrderButton" href="#" style="display: none">
-          📋 View Current Order
+        <!-- CURRENT ORDER -->
+        <a
+          id="viewOrderButton"
+          href="#"
+          class="header-action-button order-action-button"
+          style="display: none"
+          aria-label="View Current Order"
+          title="View Current Order"
+        >
+          <span class="button-icon">📋</span>
+          <span class="button-text">View Current Order</span>
         </a>
       </div>
     </header>
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
 
     <main>
       <section id="menuContainer">
         <p id="loading">Loading menu...</p>
       </section>
     </main>
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
 
     <script src="js/menu.js"></script>
   </body>

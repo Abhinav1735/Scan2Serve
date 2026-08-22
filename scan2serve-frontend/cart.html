@@ -1,5 +1,4 @@
 <!doctype html>
-
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -8,7 +7,7 @@
 
     <title>Scan2Serve Cart</title>
 
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/cart.css" />
   </head>
 
   <body>
@@ -17,9 +16,40 @@
     ========================== -->
 
     <header class="header">
-      <h1>Scan2Serve</h1>
+      <!-- TABLE CARD -->
 
-      <p id="tableInfo">Table</p>
+      <div class="table-card">
+        <p id="tableInfo">Table</p>
+      </div>
+
+      <!-- RESTAURANT NAME -->
+
+      <div class="header-center">
+        <h1>Scan2Serve</h1>
+
+        <p id="headerTableInfo">Table</p>
+      </div>
+
+      <!-- HEADER BUTTONS -->
+
+      <div class="menu-header-buttons">
+        <a id="menuButton" class="header-action-button menu-button" href="#">
+          <span class="button-icon"> 🍽️ </span>
+
+          <span class="button-text"> View Menu </span>
+        </a>
+
+        <a
+          id="headerOrderButton"
+          class="header-action-button order-button"
+          href="#"
+          style="display: none"
+        >
+          <span class="button-icon"> 📋 </span>
+
+          <span class="button-text"> View Current Order </span>
+        </a>
+      </div>
     </header>
 
     <!-- =========================

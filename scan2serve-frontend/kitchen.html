@@ -7,7 +7,7 @@
 
     <title>Kitchen Dashboard - Scan2Serve</title>
 
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/kitchen.css" />
   </head>
 
   <body>
@@ -27,36 +27,54 @@
 
     <main class="kitchen-main">
       <!-- =================================================
-             DASHBOARD HEADER
-             ================================================= -->
+           DASHBOARD HEADER CARD
+           ================================================= -->
 
       <div class="kitchen-top-bar">
-        <div>
+        <div class="kitchen-title-area">
           <h2>Kitchen Orders</h2>
 
           <p id="lastUpdated">-</p>
         </div>
 
-        <button class="kitchen-refresh-button" onclick="loadKitchenOrders()">
+        <div class="kitchen-search">
+          <input
+            type="text"
+            id="kitchenSearch"
+            placeholder="Search by Order ID or Table No."
+            oninput="searchKitchenOrders()"
+            autocomplete="off"
+          />
+        </div>
+
+        <button
+          type="button"
+          class="kitchen-refresh-button"
+          onclick="loadKitchenOrders()"
+        >
           Refresh
         </button>
       </div>
 
       <!-- =================================================
-             ERROR
-             ================================================= -->
+           ERROR
+           ================================================= -->
 
       <p id="kitchenError" class="kitchen-error"></p>
 
       <!-- =================================================
-             NEW ORDERS
-             ================================================= -->
+           NEW ORDERS CARD
+           ================================================= -->
 
       <section class="kitchen-section">
         <div class="kitchen-section-header">
-          <h2>New Orders</h2>
+          <div class="kitchen-section-title">
+            <span class="kitchen-section-icon">🆕</span>
 
-          <span id="pendingCount" class="kitchen-count"> 0 </span>
+            <h2>New Orders</h2>
+          </div>
+
+          <span id="pendingCount" class="kitchen-count">0</span>
         </div>
 
         <div id="pendingOrders" class="kitchen-orders-grid">
@@ -65,14 +83,18 @@
       </section>
 
       <!-- =================================================
-             PREPARING
-             ================================================= -->
+           PREPARING CARD
+           ================================================= -->
 
       <section class="kitchen-section">
         <div class="kitchen-section-header">
-          <h2>Preparing</h2>
+          <div class="kitchen-section-title">
+            <span class="kitchen-section-icon">👨‍🍳</span>
 
-          <span id="preparingCount" class="kitchen-count"> 0 </span>
+            <h2>Preparing</h2>
+          </div>
+
+          <span id="preparingCount" class="kitchen-count">0</span>
         </div>
 
         <div id="preparingOrders" class="kitchen-orders-grid">
@@ -81,14 +103,18 @@
       </section>
 
       <!-- =================================================
-             READY
-             ================================================= -->
+           READY CARD
+           ================================================= -->
 
       <section class="kitchen-section">
         <div class="kitchen-section-header">
-          <h2>Ready</h2>
+          <div class="kitchen-section-title">
+            <span class="kitchen-section-icon">✓</span>
 
-          <span id="readyCount" class="kitchen-count"> 0 </span>
+            <h2>Ready</h2>
+          </div>
+
+          <span id="readyCount" class="kitchen-count">0</span>
         </div>
 
         <div id="readyOrders" class="kitchen-orders-grid">
